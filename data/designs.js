@@ -18,7 +18,5 @@ window.HF_DESIGNS = [
   {"arquivo":"johnny-banner-youtube-02.png","titulo":"Johnny — YouTube 02","ano":2026,"categoria":"Banner · YouTube"},
   {"arquivo":"johnny-banner-youtube-03.png","titulo":"Johnny — YouTube 03","ano":2026,"categoria":"Banner · YouTube"},
   {"arquivo":"johnny-banner-twitch-01.png","titulo":"Johnny — Twitch 01","ano":2026,"categoria":"Banner · Twitch"},
-  {"arquivo":"johnny-banner-twitch-02.png","titulo":"Johnny — Twitch 02","ano":2026,"categoria":"Banner · Twitch"},
-  {"arquivo":"arte-27b7dfc66a304362817f4a66ac7ecc34.jpg","titulo":"Teste","ano":2026,"categoria":"Logotipo"},
-  {"arquivo":"arte-b74ad316e50a44a39a546ef2b74092a4.png","titulo":"F1 2003_ Carreira Solo – EP1","ano":2026,"categoria":"Pôster"}
+  {"arquivo":"johnny-banner-twitch-02.png","titulo":"Johnny — Twitch 02","ano":2026,"categoria":"Banner · Twitch"}
 ];
