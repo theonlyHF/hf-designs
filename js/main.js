@@ -157,6 +157,7 @@
   let coverPosition = 1;
   let handleHomeKeys;
   let syncHomeMotion;
+  let stopCoverLoading;
   let fullCoverMotion = false;
   try {
     fullCoverMotion = localStorage.getItem("hf-cover-motion") === "full";
@@ -702,6 +703,17 @@
       Promise.allSettled(animations.map(animation => animation.finished)).then(callback);
     }
 
+    function loadCoverMedia(cover) {
+      for (const image of cover.querySelectorAll("img[data-source]")) {
+        image.src = image.dataset.source;
+        delete image.dataset.source;
+      }
+      if (cover.dataset.frameSource) {
+        cover.style.setProperty("--cover-frame-image", 'url("' + cover.dataset.frameSource + '")');
+        delete cover.dataset.frameSource;
+      }
+    }
+
     function centerCover(position, playSound = true) {
       const nextPosition = Math.max(0, Math.min(position, entries.length - 1));
       if (nextPosition !== coverPosition) {
@@ -727,12 +739,7 @@
       // A capa em foco é solicitada antes das vizinhas.
       for (const index of [coverPosition, coverPosition - 1, coverPosition + 1]) {
         const cover = entries[index]?.cover;
-        if (!cover) continue;
-        for (const image of cover.querySelectorAll("img[data-source]")) {
-          image.src = image.dataset.source;
-          delete image.dataset.source;
-        }
-        if (cover.dataset.frameSource) cover.style.setProperty("--cover-frame-image", 'url("' + cover.dataset.frameSource + '")');
+        if (cover) loadCoverMedia(cover);
       }
     }
 
@@ -801,6 +808,17 @@
 
     centerCover(coverPosition);
     flow.append(...entries.map(entry => entry.cover));
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(changes => {
+        for (const change of changes) {
+          if (!change.isIntersecting) continue;
+          loadCoverMedia(change.target);
+          observer.unobserve(change.target);
+        }
+      }, { root: flow, threshold: .15 });
+      entries.forEach(entry => observer.observe(entry.cover));
+      stopCoverLoading = () => observer.disconnect();
+    }
     steps.forEach(button => button.addEventListener("click", () => {
       centerCover(coverPosition + Number(button.dataset.step));
       if (button.disabled) steps.find(step => !step.disabled)?.focus({ preventScroll: true });
@@ -1134,6 +1152,8 @@
     let template = path === "/contato" ? "contact" : "home";
     if (gallery) template = gallery.channel ? "channel" : "gallery";
     const page = document.querySelector("#" + template + "-template").content.cloneNode(true);
+    stopCoverLoading?.();
+    stopCoverLoading = null;
     handleHomeKeys = null;
     syncHomeMotion = null;
     if (gallery?.channel) {

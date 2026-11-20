@@ -1282,7 +1282,6 @@ img { display: block; max-width: 100%; }
 .viewer-variants [data-variants] > span { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 
 @media (max-width: 550px) {
-  .carousel-nav output { bottom: -.2rem; left: auto; right: 3.1rem; transform: none; }
   .case-options { max-height: min(55dvh, calc(100cqh - 5rem)); }
   .open-gallery { max-width: 7.5rem; }
 }
