@@ -23,10 +23,16 @@
   const viewerIndex = dialog.querySelector("[data-viewer-index]");
   const viewerTitle = dialog.querySelector("#viewer-title");
   const viewerDetails = dialog.querySelector("[data-viewer-details]");
+  const viewerExpand = dialog.querySelector("[data-expand]");
+  const viewerVariants = dialog.querySelector("[data-variants]");
+  const selections = new Set(["kurt-cobain-poster-01.png", "lewis-hamilton-poster.png", "michael-03.png",
+    "smk-aurenox.png", "kobe-bryant-estampa.png", "johnny-banner-youtube-02.png"]);
+  const selectedDesign = item => typeof item.destaque === "boolean" ? item.destaque : selections.has(item.arquivo);
   const isBanner = item => item.categoria.startsWith("Banner · ");
   const isPoster = item => item.categoria === "Pôster";
   const isPrint = item => item.categoria === "Estampa";
   const standardGalleries = {
+    "/selecao": { title: "Seleção HF", accepts: selectedDesign, singular: "design", plural: "designs" },
     "/designs": {
       title: "Designs",
       accepts: item => !isBanner(item),
@@ -214,10 +220,42 @@
     viewerIndex.textContent = indexLabel(viewerPosition, viewerItems.length);
     viewerImage.alt = design.titulo + " — " + design.categoria;
     viewerImage.src = imagePath(design);
+    previousButton.disabled = nextButton.disabled = viewerItems.length < 2;
+    const project = artworkProject(design);
+    const variants = project ? designs.filter(item => item.arquivo !== design.arquivo && artworkProject(item) === project) : [];
+    viewerVariants.parentElement.hidden = !variants.length;
+    viewerVariants.replaceChildren(...variants.map(item => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.titulo;
+      button.addEventListener("click", () => {
+        let index = viewerItems.findIndex(entry => entry.arquivo === item.arquivo);
+        if (index < 0) index = viewerItems.push(item) - 1;
+        showViewerItem(index);
+        viewerTitle.focus({ preventScroll: true });
+      });
+      return button;
+    }));
   }
 
+  function artworkProject(design) {
+    if (typeof design.projeto === "string") return design.projeto.trim().toLowerCase();
+    if (design.arquivo.startsWith("johnny-banner")) return "banners do johnny";
+    if (design.arquivo.startsWith("michael-")) return "michael";
+    if (design.arquivo.startsWith("kurt-cobain-poster")) return "pôsteres de kurt cobain";
+    return "";
+  }
+
+  function expandViewer(expanded) {
+    dialog.classList.toggle("is-fullscreen", expanded);
+    viewerExpand.setAttribute("aria-pressed", String(expanded));
+    viewerExpand.setAttribute("aria-label", expanded ? "Sair da tela cheia" : "Ampliar para tela cheia");
+  }
+  viewerTitle.tabIndex = -1;
+  viewerExpand.addEventListener("click", () => expandViewer(!dialog.classList.contains("is-fullscreen")));
+
   function openViewer(items, position, trigger) {
-    viewerItems = items;
+    viewerItems = [...items];
     opener = trigger;
     previousButton.disabled = nextButton.disabled = items.length < 2;
     showViewerItem(position);
@@ -232,6 +270,7 @@
     // Um fechamento disparado pela troca de rota pode chegar após outra abertura.
     if (dialog.open) return;
     document.body.classList.remove("has-lightbox");
+    expandViewer(false);
     if (opener?.isConnected) opener.focus({ preventScroll: true });
     opener = null;
     refreshLiveGallery();
@@ -240,19 +279,28 @@
     if (event.target === dialog) dialog.close();
   });
   dialog.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      if (dialog.classList.contains("is-fullscreen")) expandViewer(false);
+      else dialog.close();
+      return;
+    }
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
       if (viewerItems.length > 1) showViewerItem(viewerPosition + (event.key === "ArrowLeft" ? -1 : 1));
     }
 
     if (event.key === "Tab") {
-      const last = nextButton.disabled ? closeButton : nextButton;
-      if (event.shiftKey && document.activeElement === closeButton) {
+      const controls = [...dialog.querySelectorAll("button:not([disabled]), a[href]")].filter(control => !control.closest("[hidden]"));
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
-        closeButton.focus();
+        first.focus();
       }
     }
   });
@@ -857,6 +905,7 @@
     if (transitioning) return;
     transitioning = true;
     const departure = location.hash;
+    const previousCover = activeRoute;
     if (dialog.open) dialog.close();
     window.hfAudio.setScene(null);
     window.hfAudio.cue("eject");
@@ -876,7 +925,11 @@
       screen.inert = false;
       if (location.hash === departure) location.hash = "/";
       requestedRoute = getRoute();
+      const previousPosition = libraryRoutes.indexOf(previousCover);
+      if (requestedRoute === "/" && previousPosition >= 0) coverPosition = previousPosition;
       renderRoute(requestedRoute, true);
+      if (requestedRoute === "/" && previousPosition >= 0)
+        main.querySelector(".game-cover.is-centered .case-trigger")?.focus({ preventScroll: true });
       transitioning = false;
     }
   }
@@ -955,7 +1008,7 @@
   });
 
   document.addEventListener("keydown", event => {
-    if (!bootComplete) return;
+    if (!bootComplete || dialog.open) return;
     if (event.key === "Escape" && Object.hasOwn(galleries, activeRoute)) {
       event.preventDefault();
       ejectGallery();
