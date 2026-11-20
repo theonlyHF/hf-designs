@@ -146,7 +146,7 @@
   loadCovers(window.HF_COVERS);
   const appearance = { style: "square", theme: "site", crt: "silver" };
   const appearanceOptions = { style: ["square", "vertical"], theme: ["site", "violet", "blue", "green", "core", "orbit"], crt: ["silver", "graphite", "ivory"] };
-  let home = { color: "", image: "", sounds: {}, effect: "waves" };
+  let home = { color: "", image: "", sounds: {}, effect: "waves", bootPreset: "classic" };
 
   let activeRoute;
   let bootComplete = false;
@@ -176,6 +176,7 @@
         color: typeof settings.color === "string" && color.test(settings.color) ? settings.color : "",
         image: typeof settings.image === "string" && imageFile.test(settings.image) ? settings.image : "",
         effect: homeEffects.includes(settings.effect) ? settings.effect : "waves",
+        bootPreset: ["classic", "crystal", "pulse", "silent"].includes(settings.bootPreset) ? settings.bootPreset : "classic",
         sounds: settings.sounds && typeof settings.sounds === "object"
           ? Object.fromEntries(Object.entries(settings.sounds).filter(([, file]) => typeof file === "string" && soundFile.test(file)))
           : {},
@@ -195,8 +196,10 @@
     const fallback = gallery ? "gallery" : "home";
     const key = path.slice(1) || "home";
     const file = (Object.hasOwn(home.sounds, key) && home.sounds[key]) || (gallery && home.sounds.gallery);
-    const url = file ? new URL("../sounds/" + encodeURIComponent(file), new URL(liveAssetBase, document.baseURI)).href : "";
-    window.hfAudio.setScene(fallback, url);
+    window.hfAudio.setScene(fallback, soundUrl(file));
+  }
+  function soundUrl(file) {
+    return file ? new URL("../sounds/" + encodeURIComponent(file), new URL(liveAssetBase, document.baseURI)).href : "";
   }
   const yearLabel = design => design.ano ?? "Sem ano";
   const indexLabel = (position, total) =>
@@ -1009,11 +1012,12 @@
     powerLabel.textContent = "Iniciando…";
     rig.classList.add("is-powered");
     intro.hidden = false;
-    window.hfAudio.powerOn();
+    window.hfAudio.powerOn(home.bootPreset, soundUrl(home.sounds.boot));
 
     const animation = intro.getAnimations().find(motion => motion.animationName === "boot-reveal");
     if (animation) await animation.finished.catch(() => {});
 
+    window.hfAudio.finishBoot();
     intro.hidden = true;
     screen.inert = false;
     sound.hidden = false;

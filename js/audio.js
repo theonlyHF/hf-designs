@@ -9,6 +9,7 @@
   let context;
   let bus;
   let bootPlayed = false;
+  let bootTrack;
   let lastHover = -Infinity;
   let muted = false;
   let scene;
@@ -32,9 +33,21 @@
   }
 
   // Vinheta original, com uma base grave, um acorde metálico e uma cauda harmônica.
-  function startup() {
+  function startup(preset = "classic") {
     if (bootPlayed || scene || context?.state !== "running") return;
     bootPlayed = true;
+    if (preset === "silent") return;
+    if (preset === "crystal") {
+      [261.63, 392, 523.25, 659.25, 783.99].forEach((frequency, index) =>
+        tone({ frequency, offset: .17 + index * .31, attack: .09, length: 2.7, volume: .084 - index * .008 }));
+      return;
+    }
+    if (preset === "pulse") {
+      tone({ frequency: 98, endFrequency: 65.4, attack: .1, length: 2.1, volume: .16, waveform: "triangle" });
+      [130.81, 164.81, 196, 261.63].forEach((frequency, index) =>
+        tone({ frequency, offset: .25 + index * .19, attack: .035, length: 1.3, volume: .075, waveform: "triangle" }));
+      return;
+    }
 
     tone({ frequency: 92.5, endFrequency: 73.42, attack: .62, length: 3.95, volume: .14 });
     [138.59, 207.65, 277.18, 415.3].forEach((frequency, index) => {
@@ -88,14 +101,40 @@
     }
   }
 
-  function powerOn() {
+  function powerOn(preset = "classic", file = "") {
     prepareAudio();
-    if (!context) return;
-    if (context.state === "running") {
-      startup();
-    } else {
-      context.resume().then(startup).catch(() => {});
+    const playPreset = () => {
+      if (context?.state === "running") startup(preset);
+      else context?.resume().then(() => startup(preset)).catch(() => {});
+    };
+    if (!file) {
+      playPreset();
+      return;
     }
+    if (context?.state === "suspended") context.resume().catch(() => {});
+    const element = new Audio(file);
+    const began = performance.now();
+    bootTrack = element;
+    element.volume = .35;
+    element.muted = muted;
+    const fallback = () => {
+      if (bootTrack !== element) return;
+      finishBoot();
+      bootPlayed = false;
+      if (performance.now() - began < 1200) playPreset();
+    };
+    element.addEventListener("error", fallback, { once: true });
+    element.play().catch(fallback);
+  }
+
+  function finishBoot() {
+    bootPlayed = true;
+    if (!bootTrack) return;
+    const element = bootTrack;
+    bootTrack = null;
+    element.pause();
+    element.removeAttribute("src");
+    element.load();
   }
 
   function startMusic(useDefault = false) {
@@ -214,5 +253,5 @@
     }
   }
 
-  window.hfAudio = { powerOn, cue, setScene, toggleMute };
+  window.hfAudio = { powerOn, finishBoot, cue, setScene, toggleMute };
 })();
