@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const github = "https://raw.githubusercontent.com/hiagoferreira070-source/hf-designs/main/";
+  const github = "https://raw.githubusercontent.com/theonlyHF/hf-designs/main/";
   const local = new URL("../", document.currentScript.src);
   const interval = 20000;
   const allowedImage = /^[^\\/:*?"<>|]+\.(?:png|jpe?g|webp|gif|avif)$/i;
