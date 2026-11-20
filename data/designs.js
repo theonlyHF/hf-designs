@@ -1,4 +1,4 @@
-// Catálogo HF Designs. Edite com o HF Designs Studio.
+// Edite com o HF Designs Studio.
 window.HF_DESIGNS = [
   {"arquivo":"kurt-cobain-poster-01.png","titulo":"Kurt Cobain","ano":2026,"categoria":"Pôster"},
   {"arquivo":"kurt-cobain-poster-02.png","titulo":"Kurt Cobain — Variação","ano":2026,"categoria":"Pôster"},
