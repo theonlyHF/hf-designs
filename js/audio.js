@@ -8,10 +8,20 @@
   };
   let context;
   let bus;
+  let musicBus;
+  let bootBus;
   let bootPlayed = false;
   let bootTrack;
   let lastHover = -Infinity;
   let muted = false;
+  const volumes = { music: 1, effects: 1 };
+  try {
+    const saved = JSON.parse(localStorage.getItem("hf-audio") || "{}");
+    muted = saved.muted === true;
+    for (const key of Object.keys(volumes)) {
+      if (Number.isFinite(saved[key])) volumes[key] = Math.max(0, Math.min(1, saved[key]));
+    }
+  } catch { /* Mantém os valores iniciais quando o armazenamento está indisponível. */ }
   let scene;
   let sceneFile = "";
   let music;
@@ -37,25 +47,27 @@
     if (bootPlayed || scene || context?.state !== "running") return;
     bootPlayed = true;
     if (preset === "silent") return;
+    bootBus.gain.setValueAtTime(1, context.currentTime);
+    const chime = notes => tone(notes, bootBus);
     if (preset === "crystal") {
       [261.63, 392, 523.25, 659.25, 783.99].forEach((frequency, index) =>
-        tone({ frequency, offset: .17 + index * .31, attack: .09, length: 2.7, volume: .084 - index * .008 }));
+        chime({ frequency, offset: .17 + index * .31, attack: .09, length: 2.7, volume: .084 - index * .008 }));
       return;
     }
     if (preset === "pulse") {
-      tone({ frequency: 98, endFrequency: 65.4, attack: .1, length: 2.1, volume: .16, waveform: "triangle" });
+      chime({ frequency: 98, endFrequency: 65.4, attack: .1, length: 2.1, volume: .16, waveform: "triangle" });
       [130.81, 164.81, 196, 261.63].forEach((frequency, index) =>
-        tone({ frequency, offset: .25 + index * .19, attack: .035, length: 1.3, volume: .075, waveform: "triangle" }));
+        chime({ frequency, offset: .25 + index * .19, attack: .035, length: 1.3, volume: .075, waveform: "triangle" }));
       return;
     }
 
-    tone({ frequency: 92.5, endFrequency: 73.42, attack: .62, length: 3.95, volume: .14 });
+    chime({ frequency: 92.5, endFrequency: 73.42, attack: .62, length: 3.95, volume: .14 });
     [138.59, 207.65, 277.18, 415.3].forEach((frequency, index) => {
-      tone({ frequency, offset: .38 + index * .19, attack: .75, length: 3.8, volume: .12 - index * .018 });
-      tone({ frequency: frequency * 2.009, offset: .46 + index * .19, attack: .91, length: 3.5, volume: .032, waveform: "triangle" });
+      chime({ frequency, offset: .38 + index * .19, attack: .75, length: 3.8, volume: .12 - index * .018 });
+      chime({ frequency: frequency * 2.009, offset: .46 + index * .19, attack: .91, length: 3.5, volume: .032, waveform: "triangle" });
     });
-    tone({ frequency: 554.37, offset: 1.28, attack: .07, length: 3.55, volume: .075 });
-    tone({ frequency: 830.61, offset: 1.54, attack: .055, length: 3.35, volume: .048 });
+    chime({ frequency: 554.37, offset: 1.28, attack: .07, length: 3.55, volume: .075 });
+    chime({ frequency: 830.61, offset: 1.54, attack: .055, length: 3.35, volume: .048 });
   }
 
   function mechanicalNoise(offset, length, frequency, volume) {
@@ -91,8 +103,12 @@
     try {
       context = new AudioEngine();
       bus = context.createGain();
-      bus.gain.value = muted ? 0 : .4;
+      musicBus = context.createGain();
+      bootBus = context.createGain();
+      bootBus.connect(bus);
       bus.connect(context.destination);
+      musicBus.connect(context.destination);
+      applyVolume();
       context.addEventListener("statechange", () => {
         if (context.state === "running" && scene) startMusic();
       });
@@ -115,7 +131,7 @@
     const element = new Audio(file);
     const began = performance.now();
     bootTrack = element;
-    element.volume = .35;
+    element.volume = .35 * volumes.effects;
     element.muted = muted;
     const fallback = () => {
       if (bootTrack !== element) return;
@@ -129,6 +145,7 @@
 
   function finishBoot() {
     bootPlayed = true;
+    if (bootBus) bootBus.gain.setTargetAtTime(0, context.currentTime, .045);
     if (!bootTrack) return;
     const element = bootTrack;
     bootTrack = null;
@@ -148,7 +165,7 @@
         startMusic(true);
       };
       element.loop = true;
-      element.volume = .14;
+      element.volume = .14 * volumes.music;
       element.muted = muted;
       element.addEventListener("error", fallback, { once: true });
       music = track;
@@ -163,7 +180,7 @@
     const gain = context.createGain();
     gain.gain.setValueAtTime(0, context.currentTime);
     gain.gain.linearRampToValueAtTime(.44, context.currentTime + .8);
-    gain.connect(bus);
+    gain.connect(musicBus);
     let next = context.currentTime + .04;
     let step = 0;
 
@@ -221,9 +238,28 @@
 
   function toggleMute() {
     muted = !muted;
-    if (bus) bus.gain.setTargetAtTime(muted ? 0 : .4, context.currentTime, .045);
-    if (music?.element) music.element.muted = muted;
+    saveVolume();
     return muted;
+  }
+
+  function applyVolume() {
+    if (bus) bus.gain.setTargetAtTime(muted ? 0 : .4 * volumes.effects, context.currentTime, .045);
+    if (musicBus) musicBus.gain.setTargetAtTime(muted ? 0 : .4 * volumes.music, context.currentTime, .045);
+    if (music?.element) {
+      music.element.volume = .14 * volumes.music;
+      music.element.muted = muted;
+    }
+  }
+
+  function saveVolume() {
+    applyVolume();
+    try { localStorage.setItem("hf-audio", JSON.stringify({ ...volumes, muted })); } catch { /* Vale nesta visita. */ }
+  }
+
+  function setVolume(key, value) {
+    if (!Object.hasOwn(volumes, key) || !Number.isFinite(value)) return;
+    volumes[key] = Math.max(0, Math.min(1, value));
+    saveVolume();
   }
 
   function cue(name) {
@@ -253,5 +289,5 @@
     }
   }
 
-  window.hfAudio = { powerOn, finishBoot, cue, setScene, toggleMute };
+  window.hfAudio = { powerOn, finishBoot, cue, setScene, toggleMute, setVolume, preferences: () => ({ ...volumes, muted }) };
 })();

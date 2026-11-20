@@ -18,14 +18,15 @@
   <meta property="og:image:alt" content="Logo HF Designs em branco sobre fundo escuro">
   <title>HF Designs — Portfólio de design</title>
   <link rel="icon" href="assets/hf-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=12">
   <script defer src="data/designs.js"></script>
   <script defer src="data/covers.js"></script>
   <script defer src="data/home.js"></script>
   <script defer src="js/glitch.js"></script>
-  <script defer src="js/audio.js?v=3"></script>
+  <script defer src="js/audio.js?v=4"></script>
   <script defer src="js/catalog-live.js?v=2"></script>
-  <script defer src="js/main.js?v=11"></script>
+  <script defer src="data/thumbnails.js?v=1"></script>
+  <script defer src="js/main.js?v=12"></script>
 </head>
 <body>
   <div class="room">
@@ -88,6 +89,10 @@
           <path class="sound-muted" d="m16 10 5 5m0-5-5 5"/>
         </svg>
       </button>
+      <details class="console-volume" hidden><summary>Volume</summary>
+        <label>Trilha <input data-volume="music" type="range" min="0" max="100"></label>
+        <label>Efeitos <input data-volume="effects" type="range" min="0" max="100"></label>
+      </details>
     </div>
     <div class="console-ports" aria-hidden="true"><i></i><i></i></div>
   </div>
@@ -100,6 +105,7 @@
       <div class="viewer-top">
         <span class="eyebrow" data-viewer-index></span>
         <div class="viewer-nav">
+          <button type="button" data-copy>Copiar link</button>
           <button class="icon-button" type="button" data-expand aria-label="Ampliar para tela cheia" aria-pressed="false">⛶</button>
           <button class="icon-button" type="button" data-close aria-label="Fechar imagem" autofocus>×</button>
         </div>
@@ -110,6 +116,8 @@
           <h2 id="viewer-title"></h2>
           <p class="eyebrow" data-viewer-details></p>
           <p class="viewer-description" data-viewer-description hidden></p>
+          <p class="viewer-description" data-viewer-role hidden></p>
+          <p class="viewer-description" data-viewer-goal hidden></p>
         </div>
         <div class="viewer-nav">
           <button class="icon-button" type="button" data-prev aria-label="Imagem anterior">←</button>
@@ -120,6 +128,8 @@
         <span>Outras versões</span>
         <div data-variants></div>
       </div>
+      <div class="viewer-compare" hidden></div>
+      <span class="visually-hidden" data-link-status role="status"></span>
       <a class="viewer-contact" href="https://www.instagram.com/hf.designs01/" target="_blank" rel="noopener">Quero um design assim</a>
     </div>
   </dialog>
@@ -161,6 +171,13 @@
             <button class="motion-toggle" type="button" aria-pressed="false" hidden>Movimento 3D</button>
           </div>
         </div>
+        <div class="carousel-nav" role="group" aria-label="Navegação das capas">
+          <button type="button" data-step="-1" aria-label="Capa anterior">←</button>
+          <output aria-live="polite"></output>
+          <button type="button" data-step="1" aria-label="Próxima capa">→</button>
+        </div>
+        <a class="open-gallery" hidden>Abrir galeria</a>
+        <div class="gesture-hint" hidden>Deslize, role ou use as setas para mudar de capa. <button type="button">Entendi</button></div>
       </div>
     </section>
   </template>
@@ -230,6 +247,12 @@
           <p class="eyebrow result-count" role="status" aria-live="polite" aria-atomic="true"></p>
           <button class="eject-button" type="button"><span aria-hidden="true">⏏</span> Ejetar CD</button>
         </div>
+      </div>
+      <div class="gallery-search">
+        <label>Buscar <input type="search" placeholder="Título, categoria ou ano"></label>
+        <button type="button" data-clear>Limpar filtros</button>
+        <button type="button" data-share>Copiar link da galeria</button>
+        <span class="visually-hidden" role="status"></span>
       </div>
       <div class="gallery" id="galeria"></div>
     </section>
