@@ -114,6 +114,7 @@
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
+        artThumb: typeof entry.artThumb === "string" && imageFile.test(entry.artThumb) ? entry.artThumb : "",
         artMode: entry.artMode === "default" ? "default" : "",
         brandText: typeof entry.brandText === "string" ? entry.brandText.trim().slice(0, 36) : "",
         brandColor: typeof entry.brandColor === "string" && color.test(entry.brandColor) ? entry.brandColor : "",
@@ -950,7 +951,8 @@
 
   function resolveCoverArt(collection) {
     if (collection.artMode === "default") return null;
-    if (collection.art) return { arquivo: collection.art };
+    if (collection.art) return designs.find(design => design.arquivo === collection.art) ||
+      { arquivo: collection.art, thumb: collection.artThumb };
     return collection.accepts ? designs.find(collection.accepts) : null;
   }
 
@@ -1159,7 +1161,7 @@
     if (gallery?.channel) {
       page.querySelector("h1").textContent = gallery.title;
       page.querySelector(".channel-page p").textContent = gallery.summary;
-      if (gallery.art) page.querySelector(".channel-page img").src = imagePath({ arquivo: gallery.art });
+      if (gallery.art) page.querySelector(".channel-page img").src = thumbnail(resolveCoverArt({ ...gallery, artMode: "" })).src;
       const link = page.querySelector(".channel-page a");
       link.href = home.youtube || gallery.url;
       link.hidden = false;
