@@ -71,6 +71,9 @@
   let covers = [];
   const imageFile = /^[^\\/:*?"<>|]+\.(png|jpe?g|webp|gif|avif)$/i;
   const soundFile = /^[^\\/:*?"<>|]+\.(mp3|ogg|wav|m4a)$/i;
+  const frameStyles = ["classic", "arcade", "carbon", "optical"];
+  const discStyles = ["silver", "arcade", "print", "optical"];
+  const homeEffects = ["waves", "core", "orbit"];
   let galleries = { ...standardGalleries };
   let libraryRoutes = [];
 
@@ -88,6 +91,8 @@
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
         frame: typeof entry.frame === "string" && imageFile.test(entry.frame) ? entry.frame : "",
+        frameStyle: frameStyles.includes(entry.frameStyle) ? entry.frameStyle : "classic",
+        discStyle: discStyles.includes(entry.discStyle) ? entry.discStyle : "silver",
         category: standard ? "" : entry.category,
         ...Object.fromEntries(coverColors.map(key => [key, typeof entry[key] === "string" && color.test(entry[key]) ? entry[key] : ""])),
       });
@@ -112,8 +117,8 @@
 
   loadCovers(window.HF_COVERS);
   const appearance = { style: "square", theme: "site", crt: "silver" };
-  const appearanceOptions = { style: ["square", "vertical"], theme: ["site", "violet", "blue", "green"], crt: ["silver", "graphite", "ivory"] };
-  let home = { color: "", image: "", sounds: {} };
+  const appearanceOptions = { style: ["square", "vertical"], theme: ["site", "violet", "blue", "green", "core", "orbit"], crt: ["silver", "graphite", "ivory"] };
+  let home = { color: "", image: "", sounds: {}, effect: "waves" };
 
   let activeRoute;
   let bootComplete = false;
@@ -142,6 +147,7 @@
       home = {
         color: typeof settings.color === "string" && color.test(settings.color) ? settings.color : "",
         image: typeof settings.image === "string" && imageFile.test(settings.image) ? settings.image : "",
+        effect: homeEffects.includes(settings.effect) ? settings.effect : "waves",
         sounds: settings.sounds && typeof settings.sounds === "object"
           ? Object.fromEntries(Object.entries(settings.sounds).filter(([, file]) => typeof file === "string" && soundFile.test(file)))
           : {},
@@ -153,6 +159,7 @@
     else screen.style.removeProperty("--studio-home-color");
     if (home.image) screen.style.setProperty("--studio-home-image", `url("${imagePath({ arquivo: home.image })}")`);
     else screen.style.removeProperty("--studio-home-image");
+    applyHomeEffect();
   }
   applyHomeSettings(window.HF_HOME);
   function syncScene(path) {
@@ -170,7 +177,13 @@
   function applyAppearance(flow) {
     if (flow) flow.dataset.caseStyle = appearance.style;
     screen.dataset.theme = appearance.theme;
+    applyHomeEffect();
     rig.dataset.crt = appearance.crt;
+  }
+
+  function applyHomeEffect() {
+    screen.dataset.homeEffect = appearance.theme === "site" ? home.effect :
+      homeEffects.includes(appearance.theme) ? appearance.theme : "waves";
   }
   applyAppearance();
 
@@ -296,13 +309,15 @@
       const disc = cover.querySelector(".disc-link");
 
       cover.dataset.collection = route.slice(1);
+      cover.dataset.frame = collection.frameStyle;
+      disc.dataset.disc = collection.discStyle;
       cover.classList.toggle("cover-channel", Boolean(collection.channel));
       for (const key of coverColors) {
         if (!collection[key]) continue;
         cover.classList.add("has-cover-" + key);
         cover.style.setProperty("--art-" + key, collection[key]);
       }
-      if (collection.frame) {
+      if (collection.frame && collection.frameStyle === "classic") {
         cover.classList.add("has-cover-frame");
         cover.style.setProperty("--cover-frame-image", `url("${imagePath({ arquivo: collection.frame })}")`);
       }
@@ -322,6 +337,11 @@
       for (const image of cover.querySelectorAll(".cover-art img, .case-back-art")) {
         if (artwork) image.src = imagePath(artwork);
         else image.remove();
+      }
+      if (collection.discStyle === "print" && artwork) {
+        const print = disc.querySelector(".disc-art");
+        print.src = imagePath(artwork);
+        print.hidden = false;
       }
       return { cover, trigger, disc, lid: cover.querySelector(".case-lid"), model: cover.querySelector(".case-model") };
     });
@@ -820,6 +840,7 @@
     if (dialog.open) dialog.close();
     window.hfAudio.setScene(null);
     window.hfAudio.cue("eject");
+    ejectOverlay.querySelector(".eject-disc").dataset.disc = galleries[activeRoute]?.discStyle ?? "silver";
     screen.inert = true;
     ejectOverlay.hidden = false;
 

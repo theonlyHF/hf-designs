@@ -18,14 +18,14 @@
   <meta property="og:image:alt" content="Logo HF Designs em branco sobre fundo escuro">
   <title>HF Designs — Portfólio de design</title>
   <link rel="icon" href="assets/hf-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
   <script defer src="data/designs.js"></script>
   <script defer src="data/covers.js"></script>
   <script defer src="data/home.js"></script>
   <script defer src="js/glitch.js"></script>
   <script defer src="js/audio.js?v=2"></script>
   <script defer src="js/catalog-live.js?v=2"></script>
-  <script defer src="js/main.js?v=3"></script>
+  <script defer src="js/main.js?v=4"></script>
 </head>
 <body>
   <div class="room">
@@ -141,6 +141,8 @@
               <button type="button" data-theme="violet" aria-pressed="false">Roxo</button>
               <button type="button" data-theme="blue" aria-pressed="false">Azul</button>
               <button type="button" data-theme="green" aria-pressed="false">Verde</button>
+              <button type="button" data-theme="core" aria-pressed="false">Núcleo verde</button>
+              <button type="button" data-theme="orbit" aria-pressed="false">Órbitas</button>
             </fieldset>
             <fieldset><legend>TV de tubo</legend>
               <button type="button" data-crt="silver" aria-pressed="true">Prateada</button>
@@ -179,15 +181,16 @@
         <span class="case-edge case-edge-right" aria-hidden="true"></span>
         <span class="case-tray">
           <a class="disc-surface disc-link" draggable="false" tabindex="-1" aria-hidden="true">
+            <img class="disc-art" alt="" draggable="false" decoding="async" hidden>
             <img class="disc-mark" src="assets/hf-mark.svg" width="47" height="32" alt="" draggable="false">
             <strong class="disc-title"></strong>
           </a>
         </span>
         <span class="case-lid">
           <button class="case-trigger" type="button" aria-expanded="false" draggable="false">
-            <span class="cover-spine" aria-hidden="true"></span>
+            <span class="cover-spine" aria-hidden="true"><span class="spine-brand">HF Designs</span></span>
             <span class="cover-front">
-              <span class="cover-edition" aria-hidden="true"><img src="assets/hf-mark.svg" width="36" height="24" alt="" draggable="false"></span>
+              <span class="cover-edition" aria-hidden="true"><img src="assets/hf-mark.svg" width="36" height="24" alt="" draggable="false"><span class="edition-brand">HF Designs</span></span>
               <span class="cover-art">
                 <img alt="" draggable="false" decoding="async">
                 <svg class="cover-youtube" viewBox="0 0 48 34" aria-hidden="true"><rect width="48" height="34" rx="9" fill="#ff2537"/><path d="m19 9 14 8-14 8z" fill="#fff"/></svg>
