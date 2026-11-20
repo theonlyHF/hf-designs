@@ -187,11 +187,16 @@
   function remember(key, value) {
     try { localStorage.setItem(key, value); } catch { /* A preferência continua disponível nesta visita. */ }
   }
-  async function copyLink(hash, status) {
+  async function copyLink(hash, status, button) {
     const url = new URL(hash, location.href).href;
     try {
       await navigator.clipboard.writeText(url);
       status.textContent = "Link copiado.";
+      const original = button.dataset.originalLabel || button.textContent;
+      button.dataset.originalLabel = original;
+      button.textContent = "Link copiado";
+      clearTimeout(button.copyTimer);
+      button.copyTimer = setTimeout(() => { button.textContent = original; }, 1600);
     } catch {
       window.prompt("Copie este link", url);
     }
@@ -200,14 +205,14 @@
   let analyticsReady = false;
   const queuedGalleryViews = [];
   function trackGallery(path, title) {
-    if (location.origin !== "https://theonlyhf.github.io") return;
+    if (window.top !== window.self || location.origin !== "https://theonlyhf.github.io") return;
     const entry = { path: "/hf-designs/galeria" + path, title, event: true };
     if (analyticsReady) window.goatcounter.count(entry);
     else if (queuedGalleryViews.length < 50) queuedGalleryViews.push(entry);
   }
 
   function startAnalytics(code) {
-    if (analyticsStarted || location.origin !== "https://theonlyhf.github.io" ||
+    if (analyticsStarted || window.top !== window.self || location.origin !== "https://theonlyhf.github.io" ||
       !["/hf-designs/", "/hf-designs/index.html"].includes(location.pathname) ||
       !/^[a-z0-9][a-z0-9-]{0,59}$/.test(code ?? "")) return;
     analyticsStarted = true;
@@ -334,8 +339,8 @@
   for (const name of ["pointerup", "pointercancel", "lostpointercapture"])
     zoomSurface.addEventListener(name, event => pointers.delete(event.pointerId));
   viewerImage.draggable = false;
-  dialog.querySelector("[data-copy]").addEventListener("click", () =>
-    copyLink(routeLink(activeRoute, viewerItems[viewerPosition]), dialog.querySelector("[data-link-status]")));
+  dialog.querySelector("[data-copy]").addEventListener("click", event =>
+    copyLink(routeLink(activeRoute, viewerItems[viewerPosition]), dialog.querySelector("[data-link-status]"), event.currentTarget));
 
   function showViewerItem(position, preserveZoom = false) {
     viewerPosition = (position + viewerItems.length) % viewerItems.length;
@@ -396,9 +401,10 @@
 
   function artworkProject(design) {
     if (typeof design.projeto === "string") return design.projeto.trim().toLowerCase();
-    if (design.arquivo.startsWith("johnny-banner")) return "banners do johnny";
-    if (design.arquivo.startsWith("michael-")) return "michael";
-    if (design.arquivo.startsWith("kurt-cobain-poster")) return "pôsteres de kurt cobain";
+    const key = designKey(design);
+    if (key.startsWith("johnny-banner")) return "banners do johnny";
+    if (key.startsWith("michael-")) return "michael";
+    if (key.startsWith("kurt-cobain-poster")) return "pôsteres de kurt cobain";
     return "";
   }
 
@@ -469,6 +475,7 @@
     const carousel = flow.querySelector(".carousel-nav");
     const steps = [...carousel.querySelectorAll("[data-step]")];
     const openGallery = flow.querySelector(".open-gallery");
+    openGallery.addEventListener("click", () => window.hfAudio.cue("select"));
     const hint = flow.querySelector(".gesture-hint");
     hint.hidden = Boolean(remembered("hf-gesture-hint"));
     hint.querySelector("button").addEventListener("click", () => {
@@ -492,6 +499,7 @@
       if (restoreFocus) button.focus({ preventScroll: true });
     }
 
+    for (const button of controls.querySelectorAll("button[data-tooltip]")) button.title = button.dataset.tooltip;
     for (const button of panelButtons) {
       const panel = controls.querySelector("#" + button.dataset.panel);
       button.addEventListener("click", () => {
@@ -897,7 +905,7 @@
       centerCover(coverPosition - Math.sign(x));
     });
     flow.addEventListener("click", event => {
-      if (event.target.closest(".case-controls")) return;
+      if (event.target.closest(".case-controls, .carousel-nav, .gesture-hint, .open-gallery")) return;
       const copy = event.target.closest(".case-back-copy");
       if (copy && copy.scrollHeight > copy.clientHeight) return;
       closeOptions();
@@ -959,6 +967,7 @@
     if (preview.width > 0 && preview.height > 0) {
       image.width = preview.width;
       image.height = preview.height;
+      image.style.aspectRatio = "auto " + preview.width + " / " + preview.height;
     }
     image.src = preview.src;
     image.addEventListener("error", () => { image.dataset.failed = ""; }, { once: true });
@@ -1007,7 +1016,7 @@
       search.focus();
     });
     const share = page.querySelector("[data-share]");
-    share.addEventListener("click", () => copyLink(routeLink(activeRoute), share.nextElementSibling));
+    share.addEventListener("click", () => copyLink(routeLink(activeRoute), share.nextElementSibling, share));
 
     function selectYear(year, button) {
       if (year === currentYear) return;
@@ -1098,6 +1107,7 @@
     } else if (focused) {
       main.querySelector(searchFocused ? "input[type=search]" : '.filters [aria-pressed="true"]').focus({ preventScroll: true });
     }
+    if (!viewed && bootComplete && designFromHash()) openLinkedDesign();
   }
 
   function getRoute() {

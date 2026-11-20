@@ -117,8 +117,9 @@
     }
   }
 
-  function powerOn(preset = "classic", file = "") {
+  function powerOn(preset = "classic", file = "", repeat = false) {
     prepareAudio();
+    if (repeat && !scene) bootPlayed = false;
     const playPreset = () => {
       if (context?.state === "running") startup(preset);
       else context?.resume().then(() => startup(preset)).catch(() => {});
