@@ -843,10 +843,10 @@ img { display: block; max-width: 100%; }
 }
 .cover-center.is-logo {
   width: 58%;
-  aspect-ratio: 80 / 54;
-  background: currentColor;
-  mask: url("../assets/hf-mark.svg") center / contain no-repeat;
 }
+.cover-center-logo { display: none; width: 100%; height: auto; fill: currentColor; }
+.cover-center.is-logo .cover-center-logo { display: block; }
+.cover-center.is-logo .cover-center-text { display: none; }
 .has-brand-cover .cover-youtube { display: none; }
 .coverflow .game-cover.has-brand-cover .cover-art strong {
   inset-block-end: .65rem;

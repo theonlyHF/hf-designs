@@ -743,7 +743,7 @@
     const text = collection.brandText;
     center.hidden = false;
     center.classList.toggle("is-logo", !text);
-    center.textContent = text;
+    center.querySelector(".cover-center-text").textContent = text;
     if (text) center.style.setProperty("--brand-length", Math.max(7, Array.from(text.toUpperCase()).length));
     if (collection.brandColor) center.style.setProperty("--brand-color", collection.brandColor);
   }
