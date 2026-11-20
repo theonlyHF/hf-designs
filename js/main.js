@@ -235,6 +235,61 @@
     } catch {}
     return fallback;
   }
+
+  const paletteSurfaces = [screen, dialog];
+  let sampledSource = "";
+
+  function dominantColor(pixels) {
+    const buckets = new Map();
+    let winner;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i + 3] < 128) continue;
+      const red = pixels[i], green = pixels[i + 1], blue = pixels[i + 2];
+      const brightness = Math.max(red, green, blue);
+      const saturation = brightness - Math.min(red, green, blue);
+      const neutral = saturation < 18 && (brightness < 42 || brightness > 232);
+      const weight = neutral ? .55 : 1 + saturation / 510;
+      const key = (red >> 5) * 64 + (green >> 5) * 8 + (blue >> 5);
+      const sample = buckets.get(key) ?? { red: 0, green: 0, blue: 0, weight: 0, count: 0 };
+      sample.red += red;
+      sample.green += green;
+      sample.blue += blue;
+      sample.weight += weight;
+      sample.count++;
+      buckets.set(key, sample);
+      if (!winner || sample.weight > winner.weight) winner = sample;
+    }
+    if (!winner) return "";
+    const channel = value => Math.round(value / winner.count);
+    return `rgb(${channel(winner.red)} ${channel(winner.green)} ${channel(winner.blue)})`;
+  }
+
+  function updateImagePalette() {
+    const source = home.image ? new URL(imagePath({ arquivo: home.image }), document.baseURI).href : "";
+    if (sampledSource === source) return;
+    sampledSource = source;
+    for (const surface of paletteSurfaces) surface.style.removeProperty("--image-accent");
+    if (!source) return;
+    const image = new Image();
+    const url = new URL(source);
+    if (url.protocol.startsWith("http") && url.origin !== location.origin) image.crossOrigin = "anonymous";
+    image.addEventListener("load", () => {
+      if (sampledSource !== source) return;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 40;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) return;
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const accent = dominantColor(context.getImageData(0, 0, canvas.width, canvas.height).data);
+        if (accent) for (const surface of paletteSurfaces) surface.style.setProperty("--image-accent", accent);
+      } catch {
+        // A paleta do tema continua disponível quando a origem não permite ler pixels.
+      }
+    });
+    image.src = source;
+  }
+
   function applyHomeSettings(settings) {
     if (settings && typeof settings === "object") {
       home = {
@@ -254,12 +309,15 @@
       const currentChannel = main.querySelector(".channel-page a");
       if (currentChannel) currentChannel.href = home.youtube;
     }
+    for (const surface of paletteSurfaces) {
+      if (home.color) surface.style.setProperty("--studio-home-color", home.color);
+      else surface.style.removeProperty("--studio-home-color");
+    }
     screen.classList.toggle("has-home-color", Boolean(home.color));
     screen.classList.toggle("has-home-image", Boolean(home.image));
-    if (home.color) screen.style.setProperty("--studio-home-color", home.color);
-    else screen.style.removeProperty("--studio-home-color");
     if (home.image) screen.style.setProperty("--studio-home-image", `url("${imagePath({ arquivo: home.image })}")`);
     else screen.style.removeProperty("--studio-home-image");
+    updateImagePalette();
     applyHomeEffect();
   }
   applyHomeSettings(window.HF_HOME);
@@ -286,14 +344,17 @@
 
   function applyAppearance(flow) {
     if (flow) flow.dataset.caseStyle = appearance.style;
-    screen.dataset.theme = appearance.theme;
     applyHomeEffect();
     rig.dataset.crt = appearance.crt;
   }
 
   function applyHomeEffect() {
-    screen.dataset.homeEffect = appearance.theme === "site" ? home.effect :
+    const effect = appearance.theme === "site" ? home.effect :
       homeEffects.includes(appearance.theme) ? appearance.theme : "waves";
+    for (const surface of paletteSurfaces) {
+      surface.dataset.theme = appearance.theme;
+      surface.dataset.homeEffect = effect;
+    }
   }
   applyAppearance();
 
