@@ -24,7 +24,6 @@
   const viewerTitle = dialog.querySelector("#viewer-title");
   const viewerDetails = dialog.querySelector("[data-viewer-details]");
   const viewerDescription = dialog.querySelector("[data-viewer-description]");
-  const viewerContact = dialog.querySelector(".viewer-contact");
   const viewerExpand = dialog.querySelector("[data-expand]");
   const viewerVariants = dialog.querySelector("[data-variants]");
   const selections = new Set(["kurt-cobain-poster-01.png", "lewis-hamilton-poster.png", "michael-03.png",
@@ -248,14 +247,11 @@
         instagram: httpsLink(settings.instagram, "https://www.instagram.com/hf.designs01/"),
         discord: httpsLink(settings.discord, "https://discord.gg/fCq5MfF49"),
         youtube: httpsLink(settings.youtube, standardGalleries["/canal"].url),
-        contactLabel: typeof settings.contactLabel === "string" ? settings.contactLabel.trim().slice(0, 60) : "",
         sounds: settings.sounds && typeof settings.sounds === "object"
           ? Object.fromEntries(Object.entries(settings.sounds).filter(([, file]) => typeof file === "string" && soundFile.test(file)))
           : {},
       };
       startAnalytics(settings.analyticsCode);
-      viewerContact.href = home.instagram;
-      viewerContact.textContent = home.contactLabel || "Quero um design assim";
       syncContactLinks(main);
       const currentChannel = main.querySelector(".channel-page a");
       if (currentChannel) currentChannel.href = home.youtube;
@@ -474,16 +470,12 @@
 
   function renderHome(page) {
     const flow = page.querySelector(".coverflow");
-    const carousel = flow.querySelector(".carousel-nav");
-    const steps = [...carousel.querySelectorAll("[data-step]")];
-    const openGallery = flow.querySelector(".open-gallery");
-    openGallery.addEventListener("click", () => window.hfAudio.cue("select"));
     const hint = flow.querySelector(".gesture-hint");
     hint.hidden = Boolean(remembered("hf-gesture-hint"));
     hint.querySelector("button").addEventListener("click", () => {
       remember("hf-gesture-hint", "dismissed");
       hint.hidden = true;
-      (steps.find(button => !button.disabled) || flow.querySelector(".case-trigger"))?.focus();
+      flow.querySelector(".game-cover.is-centered .case-trigger")?.focus({ preventScroll: true });
     });
     const close = flow.querySelector(".case-close");
     const motionToggle = flow.querySelector(".motion-toggle");
@@ -539,7 +531,7 @@
       }
     }
     if (!libraryRoutes.length) {
-      carousel.hidden = hint.hidden = true;
+      hint.hidden = true;
       const empty = document.createElement("p");
       empty.className = "empty-covers";
       empty.textContent = "Nenhuma capa disponível.";
@@ -723,9 +715,6 @@
         if (playSound) window.hfAudio.cue("hover");
       }
       coverPosition = nextPosition;
-      carousel.querySelector("output").textContent = indexLabel(coverPosition, entries.length);
-      steps[0].disabled = coverPosition === 0;
-      steps[1].disabled = coverPosition === entries.length - 1;
       entries.forEach(({ cover }, index) => {
         const distance = index - coverPosition;
         const side = Math.sign(distance);
@@ -753,8 +742,6 @@
       cover.classList.remove("is-open", "is-disc-ready");
       flow.classList.remove("has-open-case");
       close.hidden = true;
-      openGallery.hidden = true;
-      carousel.hidden = false;
       hint.hidden = Boolean(remembered("hf-gesture-hint"));
       fadeReducedMotion();
       trigger.setAttribute("aria-expanded", "false");
@@ -790,7 +777,7 @@
       cover.classList.add("is-open");
       flow.classList.add("has-open-case");
       close.hidden = false;
-      carousel.hidden = hint.hidden = true;
+      hint.hidden = true;
       window.hfAudio.cue("select");
       fadeReducedMotion();
       entries.forEach(entry => { entry.trigger.tabIndex = -1; });
@@ -801,8 +788,6 @@
         cover.classList.add("is-disc-ready");
         disc.removeAttribute("aria-hidden");
         disc.tabIndex = 0;
-        openGallery.href = disc.getAttribute("href");
-        openGallery.hidden = false;
         if (document.activeElement === close) disc.focus({ preventScroll: true });
       });
     }
@@ -820,11 +805,6 @@
       entries.forEach(entry => observer.observe(entry.cover));
       stopCoverLoading = () => observer.disconnect();
     }
-    steps.forEach(button => button.addEventListener("click", () => {
-      centerCover(coverPosition + Number(button.dataset.step));
-      if (button.disabled) steps.find(step => !step.disabled)?.focus({ preventScroll: true });
-    }));
-
     entries.forEach(entry => {
       entry.cover.addEventListener("pointerenter", event => {
         if (event.pointerType === "touch" || opened || (dragged && gesture)) return;
@@ -885,7 +865,7 @@
     }, { passive: false });
 
     flow.addEventListener("pointerdown", event => {
-      if (opened || event.target.closest(".case-controls, .carousel-nav, .gesture-hint") || !event.isPrimary || event.button !== 0) return;
+      if (opened || event.target.closest(".case-controls, .gesture-hint") || !event.isPrimary || event.button !== 0) return;
       dragged = false;
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, limit: flow.clientWidth * .27 };
     });
@@ -924,7 +904,7 @@
       centerCover(coverPosition - Math.sign(x));
     });
     flow.addEventListener("click", event => {
-      if (event.target.closest(".case-controls, .carousel-nav, .gesture-hint, .open-gallery")) return;
+      if (event.target.closest(".case-controls, .gesture-hint")) return;
       const copy = event.target.closest(".case-back-copy");
       if (copy && copy.scrollHeight > copy.clientHeight) return;
       closeOptions();

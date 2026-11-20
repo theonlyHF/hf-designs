@@ -1117,9 +1117,8 @@ img { display: block; max-width: 100%; }
 .viewer-nav { display: flex; gap: .35rem; }
 .viewer-variants { display: grid; gap: .4rem; margin-top: .8rem; color: var(--muted); font-size: .78rem; }
 .viewer-variants > div { display: flex; flex-wrap: wrap; gap: .32rem; }
-.viewer-variants button, .viewer-contact { display: inline-flex; align-items: center; min-height: 2.15rem; padding: .3rem .55rem; border: 1px solid var(--button-border); border-radius: 4px; background: var(--screen); color: var(--text); text-decoration: none; }
-.viewer-contact { margin-top: .65rem; font: .78rem var(--mono); }
-.viewer-contact:hover, .viewer-variants button:hover { border-color: var(--accent); }
+.viewer-variants button { display: inline-flex; align-items: center; min-height: 2.15rem; padding: .3rem .55rem; border: 1px solid var(--button-border); border-radius: 4px; background: var(--screen); color: var(--text); }
+.viewer-variants button:hover { border-color: var(--accent); }
 .lightbox.is-fullscreen { inset: 0; margin: 0; width: 100%; height: 100%; max-width: none; max-height: none; border-radius: 0; }
 .lightbox.is-fullscreen .viewer-image img { max-height: 82dvh; }
 .icon-button {
@@ -1241,16 +1240,13 @@ img { display: block; max-width: 100%; }
   30%, 70% { opacity: 1; }
 }
 
-.carousel-nav, .open-gallery, .gesture-hint {
+.gesture-hint {
   position: absolute;
   z-index: 8;
   color: #faf3fc;
   font: .72rem/1.35 var(--mono);
 }
-.carousel-nav { inset: auto 4% 5%; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
-.carousel-nav button { pointer-events: auto; }
-.carousel-nav output { position: absolute; bottom: 2.8rem; left: 50%; transform: translateX(-50%); background: #190f25; padding: .15rem .35rem; border-radius: 4px; white-space: nowrap; }
-.carousel-nav button, .open-gallery, .gesture-hint button, .gallery-search button, [data-copy] {
+.gesture-hint button, .gallery-search button, [data-copy] {
   background: #21152b;
   color: #faf3fc;
   border: 1px solid #a183b4;
@@ -1258,9 +1254,6 @@ img { display: block; max-width: 100%; }
   min-height: 44px;
   padding: .35rem .55rem;
 }
-.carousel-nav button { min-width: 44px; font-size: 1.15rem; }
-.carousel-nav button:disabled { opacity: .55; }
-.open-gallery { bottom: 5%; right: 6%; display: grid; place-items: center; text-align: center; text-decoration: none; }
 .gesture-hint { top: .35rem; left: 50%; transform: translateX(-50%); width: max-content; max-width: 90%; padding: .25rem .4rem; text-align: center; background: #190f25; border-radius: .4rem; }
 .gesture-hint button { min-height: 32px; }
 .case-controls .control-dot { width: 44px; }
@@ -1283,6 +1276,5 @@ img { display: block; max-width: 100%; }
 
 @media (max-width: 550px) {
   .case-options { max-height: min(55dvh, calc(100cqh - 5rem)); }
-  .open-gallery { max-width: 7.5rem; }
 }
 
