@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 54">
+  <g fill="#f1f4ff">
+    <path d="M4.5 11.25h17.25a1 1 0 0 1 1 1V26.5h1V12.25a1 1 0 0 1 1-1H42a1 1 0 0 1 1 1v39.5a1 1 0 0 1-1 1H24.75a1 1 0 0 1-1-1V38.5h-1v13.25a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-39.5a1 1 0 0 1 1-1Z"/>
+    <path d="M45.5 11.25h30a1 1 0 0 1 1 1V26a1 1 0 0 1-1 1H64v1.25h11.5a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H64v13a1 1 0 0 1-1 1H45.5a1 1 0 0 1-1-1v-39.5a1 1 0 0 1 1-1Z"/>
+    <text x="70.75" y="7.5" text-anchor="end" font-family="monospace" font-size="4.7" letter-spacing="1.2">DESIGNS</text>
+  </g>
+</svg>
