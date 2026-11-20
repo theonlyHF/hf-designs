@@ -25,7 +25,6 @@
   const viewerDetails = dialog.querySelector("[data-viewer-details]");
   const viewerDescription = dialog.querySelector("[data-viewer-description]");
   const viewerExpand = dialog.querySelector("[data-expand]");
-  const viewerVariants = dialog.querySelector("[data-variants]");
   const selections = new Set(["kurt-cobain-poster-01.png", "lewis-hamilton-poster.png", "michael-03.png",
     "smk-aurenox.png", "kobe-bryant-estampa.png", "johnny-banner-youtube-02.png"]);
   const selectedDesign = item => typeof item.destaque === "boolean" ? item.destaque : selections.has(item.arquivo);
@@ -179,7 +178,6 @@
     return info ? { src: liveAssetBase + "thumbs/" + encodeURIComponent(info[0]), width: info[1], height: info[2] }
       : { src: imagePath(design) };
   };
-  const normalizeSearch = value => value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("pt-BR");
   const designFromHash = () => new URLSearchParams(location.hash.split("?")[1]).get("design");
   const routeLink = (route, design) => "#" + route + (design ? "?design=" + encodeURIComponent(designKey(design)) : "");
   function remembered(key) {
@@ -299,7 +297,6 @@
   }
   applyAppearance();
 
-  const compare = dialog.querySelector(".viewer-compare");
   const zoomSurface = viewerImage.parentElement;
   const pointers = new Map();
   let zoom = 1, panX = 0, panY = 0;
@@ -354,56 +351,11 @@
       field.textContent = content ? label + " · " + content : "";
     }
     if (!preserveZoom) resetZoom();
-    compare.hidden = true;
-    compare.replaceChildren();
     viewerIndex.textContent = indexLabel(viewerPosition, viewerItems.length);
     viewerImage.alt = design.titulo + " — " + design.categoria;
     if (viewerImage.getAttribute("src") !== imagePath(design)) viewerImage.src = imagePath(design);
     previousButton.disabled = nextButton.disabled = viewerItems.length < 2;
-    const project = artworkProject(design);
-    const variants = project ? designs.filter(item => item.arquivo !== design.arquivo && artworkProject(item) === project) : [];
-    viewerVariants.parentElement.hidden = !variants.length;
-    viewerVariants.replaceChildren(...variants.map(item => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = item.titulo;
-      button.addEventListener("click", () => {
-        let index = viewerItems.findIndex(entry => entry.arquivo === item.arquivo);
-        if (index < 0) index = viewerItems.push(item) - 1;
-        showViewerItem(index);
-        viewerTitle.focus({ preventScroll: true });
-      });
-      const pair = document.createElement("span");
-      const comparison = document.createElement("button");
-      comparison.type = "button";
-      comparison.textContent = "Comparar";
-      comparison.setAttribute("aria-label", "Comparar com " + item.titulo);
-      comparison.addEventListener("click", () => {
-        compare.replaceChildren(...[design, item].map(version => {
-          const figure = document.createElement("figure");
-          const image = document.createElement("img");
-          const caption = document.createElement("figcaption");
-          image.src = imagePath(version);
-          image.alt = caption.textContent = version.titulo;
-          figure.append(image, caption);
-          return figure;
-        }));
-        compare.hidden = false;
-        compare.scrollIntoView({ block: "nearest" });
-      });
-      pair.append(button, comparison);
-      return pair;
-    }));
     if (dialog.open && activeRoute === getRoute()) history.replaceState(null, "", routeLink(activeRoute, design));
-  }
-
-  function artworkProject(design) {
-    if (typeof design.projeto === "string") return design.projeto.trim().toLowerCase();
-    const key = designKey(design);
-    if (key.startsWith("johnny-banner")) return "banners do johnny";
-    if (key.startsWith("michael-")) return "michael";
-    if (key.startsWith("kurt-cobain-poster")) return "pôsteres de kurt cobain";
-    return "";
   }
 
   function expandViewer(expanded) {
@@ -432,7 +384,6 @@
     document.body.classList.remove("has-lightbox");
     if (activeRoute === getRoute() && designFromHash()) history.replaceState(null, "", routeLink(activeRoute));
     viewerImage.removeAttribute("src");
-    compare.replaceChildren();
     expandViewer(false);
     if (opener?.isConnected) opener.focus({ preventScroll: true });
     opener = null;
@@ -979,12 +930,10 @@
     return button;
   }
 
-  function renderGallery(page, config, selectedYear = "all", query = "") {
+  function renderGallery(page, config, selectedYear = "all") {
     const gallery = page.querySelector(".gallery");
     const filters = page.querySelector(".filters");
     const count = page.querySelector(".result-count");
-    const search = page.querySelector("input[type=search]");
-    search.value = query;
     const items = designs.filter(config.accepts);
     const years = [...new Set(items.map(item => item.ano).filter(Number.isInteger))].sort((a, b) => b - a);
     let currentYear = years.includes(selectedYear) ? selectedYear : "all";
@@ -996,9 +945,7 @@
     page.querySelector(".eject-button").addEventListener("click", ejectGallery);
 
     function showItems(year) {
-      const terms = normalizeSearch(search.value.trim()).split(/\s+/);
-      const visible = items.filter(item => (year === "all" || item.ano === year) &&
-        terms.every(term => normalizeSearch([item.titulo, item.categoria, yearLabel(item)].join(" ")).includes(term)));
+      const visible = year === "all" ? items : items.filter(item => item.ano === year);
       gallery.replaceChildren(...visible.map(makeCard));
       count.textContent = visible.length + " " + (visible.length === 1 ? config.singular : config.plural);
       if (!visible.length) {
@@ -1008,15 +955,6 @@
         gallery.append(empty);
       }
     }
-    search.addEventListener("input", () => showItems(currentYear));
-    page.querySelector("[data-clear]").addEventListener("click", () => {
-      search.value = "";
-      filters.firstElementChild.click();
-      showItems(currentYear);
-      search.focus();
-    });
-    const share = page.querySelector("[data-share]");
-    share.addEventListener("click", () => copyLink(routeLink(activeRoute), share.nextElementSibling, share));
 
     function selectYear(year, button) {
       if (year === currentYear) return;
@@ -1087,15 +1025,13 @@
       return;
     }
     const activeFilter = Number(main.querySelector('.filters [aria-pressed="true"]')?.textContent);
-    const search = main.querySelector("input[type=search]");
     const scroll = screen.scrollTop;
-    const searchFocused = search === document.activeElement;
     const focused = dialog.open || main.contains(document.activeElement);
     const viewed = dialog.open ? viewerItems[viewerPosition] : null;
     const current = viewed && designs.find(item => designKey(item) === designKey(viewed));
     if (viewed && !current) dialog.close();
     const page = document.querySelector("#gallery-template").content.cloneNode(true);
-    renderGallery(page, gallery, activeFilter, search?.value);
+    renderGallery(page, gallery, activeFilter);
     main.replaceChildren(page);
     screen.scrollTop = scroll;
     if (current) {
@@ -1105,7 +1041,7 @@
       opener = [...main.querySelectorAll(".work-card")].find(card => card.dataset.designKey === designKey(current));
       showViewerItem(index, current.arquivo === viewed.arquivo);
     } else if (focused) {
-      main.querySelector(searchFocused ? "input[type=search]" : '.filters [aria-pressed="true"]').focus({ preventScroll: true });
+      main.querySelector('.filters [aria-pressed="true"]').focus({ preventScroll: true });
     }
     if (!viewed && bootComplete && designFromHash()) openLinkedDesign();
   }
