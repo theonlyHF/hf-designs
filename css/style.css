@@ -466,16 +466,17 @@ img { display: block; max-width: 100%; }
   overflow: hidden;
   border: 1px solid #99949f;
   border-radius: 2px;
-  background: #15101e;
+  background: var(--art-back, #15101e);
   box-shadow: inset 0 0 0 5px #a5a2ce24;
   transform: translateZ(calc(var(--case-front) - var(--case-depth))) rotateY(180deg);
   backface-visibility: hidden;
   cursor: pointer;
 }
 .case-back-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .17; }
-.case-back-copy { position: relative; display: grid; justify-items: start; gap: .58rem; width: 83%; padding: .68rem; background: #140d22d9; color: #f4efff; }
+.case-back-copy { position: relative; display: grid; align-content: start; justify-items: start; gap: .58rem; width: 83%; max-height: 94%; overflow: auto; scrollbar-width: thin; padding: .68rem; background: #140d22d9; color: #f4efff; touch-action: pan-y; }
+.has-cover-back .case-back-copy { background: color-mix(in srgb, var(--art-back) 50%, #08050f); }
 .case-back-copy strong { font: 700 clamp(.99rem, 2vw, 1.55rem)/1.05 var(--display); }
-.case-summary { font-size: clamp(.69rem, 1.35vw, .925rem); line-height: 1.44; }
+.case-summary { font-size: clamp(.69rem, 1.35vw, .925rem); line-height: 1.44; white-space: pre-wrap; overflow-wrap: anywhere; }
 .case-liner, .case-tray {
   border: 1px solid #99a7ba;
   border-radius: 5px;
@@ -711,7 +712,20 @@ img { display: block; max-width: 100%; }
   font: 700 clamp(1rem, 2.5vw, 2.2rem)/.97 var(--display);
   letter-spacing: -.06em;
   text-shadow: 0 2px 5px #000;
+  overflow-wrap: anywhere;
 }
+.has-cover-accent .cover-spine,
+[data-case-style="square"] .cover-channel.has-cover-accent .cover-spine {
+  border-inline-color: color-mix(in srgb, var(--art-accent), white 32%) #000;
+  background: repeating-linear-gradient(0deg, #fff1 0 1px, transparent 1px 3px),
+    linear-gradient(90deg, color-mix(in srgb, var(--art-accent), black 30%), var(--art-accent) 30%, var(--art-accent) 82%, color-mix(in srgb, var(--art-accent), white 22%));
+}
+[data-case-style="vertical"] .has-cover-accent .cover-edition {
+  background: color-mix(in srgb, var(--art-accent), black 35%);
+  border-bottom-color: var(--art-accent);
+}
+.has-cover-front .cover-art { background: radial-gradient(ellipse at 35% 20%, var(--art-front), #100a17); }
+.has-cover-front .cover-art img { opacity: .65; mix-blend-mode: luminosity; }
 .game-cover.is-distant .cover-art strong {
   inset-inline: .65rem;
   font-size: clamp(.92rem, 1.8vw, 1.55rem);

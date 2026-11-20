@@ -4,6 +4,7 @@
   const designs = window.HF_DESIGNS;
   let liveAssetBase = "assets/designs/";
   let galleryRefreshPending = false;
+  let coversRefreshPending = false;
   const main = document.querySelector("main");
   const screen = document.querySelector(".screen-scroll");
   const rig = document.querySelector(".rig");
@@ -26,7 +27,7 @@
   const isBanner = item => item.categoria.startsWith("Banner · ");
   const isPoster = item => item.categoria === "Pôster";
   const isPrint = item => item.categoria === "Estampa";
-  const galleries = {
+  const standardGalleries = {
     "/designs": {
       title: "Designs",
       accepts: item => !isBanner(item),
@@ -34,47 +35,75 @@
       plural: "designs",
     },
     "/banners": {
-      title: "Banners",
       isBanner: true,
       accepts: isBanner,
       singular: "banner",
       plural: "banners",
-      cover: "johnny-banner-youtube-02.png",
-      summary: "Identidades para canais com lettering em destaque e retratos. Predominam os tons escuros, azuis e roxos.",
     },
     "/posters": {
-      title: "Pôsteres",
       accepts: isPoster,
       singular: "pôster",
       plural: "pôsteres",
-      cover: "kurt-cobain-poster-02.png",
-      summary: "Retratos de músicos e pilotos com alto contraste, títulos grandes e texturas de impressão.",
     },
     "/estampas": {
-      title: "Estampas",
       accepts: isPrint,
       singular: "estampa",
       plural: "estampas",
-      cover: "kobe-bryant-estampa.png",
-      summary: "Artes para vestuário com figuras recortadas sobre fundos escuros e pontos de cor em amarelo ou vermelho.",
     },
     "/outros": {
-      title: "Outros designs",
       accepts: item => !isBanner(item) && !isPoster(item) && !isPrint(item),
       singular: "design",
       plural: "designs",
-      cover: "michael-03.png",
-      summary: "Colagens, capas e miniaturas com recortes de imagens, tipografia pesada e referências da cultura pop.",
     },
     "/canal": {
-      title: "Meu canal",
       channel: true,
-      cover: "hf-banner-youtube.png",
-      summary: "Gameplays de jogos variados, com vídeos novos quando tenho tempo de gravar.",
       url: "https://www.youtube.com/@theonlyhf",
     },
   };
-  const libraryRoutes = ["/banners", "/posters", "/estampas", "/outros", "/canal"];
+  const customCover = /^capa-[a-z0-9-]{1,60}$/;
+  const color = /^#[a-f\d]{6}$/i;
+  const coverColors = ["front", "accent", "back"];
+  let covers = [];
+  let galleries = {};
+  let libraryRoutes = [];
+
+  function loadCovers(input) {
+    if (!Array.isArray(input)) return false;
+    const seen = new Set();
+    const next = [];
+    for (const entry of input) {
+      if (!entry || typeof entry.id !== "string" || seen.has(entry.id) || entry.id === "designs" ||
+        typeof entry.title !== "string" || !entry.title.trim() || typeof entry.summary !== "string") return false;
+      const standard = Object.hasOwn(standardGalleries, "/" + entry.id);
+      if (!standard && (!customCover.test(entry.id) || typeof entry.category !== "string" || !entry.category.trim())) return false;
+      seen.add(entry.id);
+      next.push({
+        id: entry.id, title: entry.title, summary: entry.summary,
+        art: typeof entry.art === "string" && /^[^\\/:*?"<>|]+\.(png|jpe?g|webp|gif|avif)$/i.test(entry.art) ? entry.art : "",
+        category: standard ? "" : entry.category,
+        ...Object.fromEntries(coverColors.map(key => [key, typeof entry[key] === "string" && color.test(entry[key]) ? entry[key] : ""])),
+      });
+    }
+    if (!Object.keys(standardGalleries).every(route => route === "/designs" || seen.has(route.slice(1)))) return false;
+    if (JSON.stringify(next) === JSON.stringify(covers)) return false;
+    covers = next;
+    galleries = { "/designs": standardGalleries["/designs"] };
+    for (const cover of covers) {
+      const route = "/" + cover.id;
+      galleries[route] = {
+        ...(standardGalleries[route] ?? {
+          accepts: item => item.categoria === cover.category,
+          singular: "design",
+          plural: "designs",
+        }),
+        ...cover,
+      };
+    }
+    libraryRoutes = covers.map(cover => "/" + cover.id);
+    return true;
+  }
+
+  loadCovers(window.HF_COVERS);
   const appearance = { style: "square", theme: "violet", crt: "silver" };
   const appearanceOptions = { style: ["square", "vertical"], theme: ["violet", "blue", "green"], crt: ["silver", "graphite", "ivory"] };
 
@@ -220,13 +249,17 @@
     const entries = libraryRoutes.map(route => {
       const collection = galleries[route];
       const cover = template.content.firstElementChild.cloneNode(true);
-      const artwork = designs.find(item => item.arquivo === collection.cover)
-        ?? (collection.accepts && designs.find(collection.accepts));
+      const artwork = collection.art ? { arquivo: collection.art } : collection.accepts && designs.find(collection.accepts);
       const trigger = cover.querySelector(".case-trigger");
       const disc = cover.querySelector(".disc-link");
 
       cover.dataset.collection = route.slice(1);
       cover.classList.toggle("cover-channel", Boolean(collection.channel));
+      for (const key of coverColors) {
+        if (!collection[key]) continue;
+        cover.classList.add("has-cover-" + key);
+        cover.style.setProperty("--art-" + key, collection[key]);
+      }
       trigger.setAttribute("aria-label", "Abrir caixa: " + collection.title);
       disc.id = "disc-" + cover.dataset.collection;
       disc.href = "#" + route;
@@ -397,6 +430,7 @@
         model.style.removeProperty("--case-yaw");
         cover.classList.remove("is-closing");
         if (entry.hovered) turnUnderPointer(entry);
+        refreshLiveGallery();
       });
     }
 
@@ -474,6 +508,8 @@
 
     flow.addEventListener("wheel", event => {
       if (opened || event.ctrlKey) return;
+      const copy = event.target.closest(".case-back-copy");
+      if (copy && copy.scrollHeight > copy.clientHeight) return;
       const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
       if (!delta) return;
       event.preventDefault();
@@ -532,6 +568,8 @@
     });
     flow.addEventListener("click", event => {
       if (event.target.closest(".case-controls")) return;
+      const copy = event.target.closest(".case-back-copy");
+      if (copy && copy.scrollHeight > copy.clientHeight) return;
       closeOptions();
       if (dragged && event.detail > 0) {
         event.preventDefault();
@@ -653,9 +691,20 @@
   }
 
   function refreshLiveGallery() {
-    if (!galleryRefreshPending || dialog.open || transitioning) return;
+    if (dialog.open || transitioning) return;
+    if (coversRefreshPending && activeRoute === "/") {
+      if (main.querySelector(".has-open-case, .is-closing")) return;
+      const focusedCover = main.querySelector(".game-cover:focus-within")?.dataset.collection;
+      renderRoute("/");
+      if (focusedCover) main.querySelector(`[data-collection="${focusedCover}"] .case-trigger`)?.focus({ preventScroll: true });
+      return;
+    }
     const gallery = galleries[activeRoute];
-    if (!gallery || gallery.channel) return;
+    if (!gallery || !galleryRefreshPending) return;
+    if (gallery.channel) {
+      if (coversRefreshPending) renderRoute(activeRoute);
+      return;
+    }
     const activeFilter = Number(main.querySelector('.filters [aria-pressed="true"]')?.textContent);
     const scroll = screen.scrollTop;
     const focused = main.contains(document.activeElement);
@@ -665,6 +714,7 @@
     screen.scrollTop = scroll;
     if (focused) main.querySelector('.filters [aria-pressed="true"]').focus({ preventScroll: true });
     galleryRefreshPending = false;
+    coversRefreshPending = false;
   }
 
   function getRoute() {
@@ -674,6 +724,7 @@
 
   function renderRoute(path, moveFocus = false) {
     galleryRefreshPending = false;
+    coversRefreshPending = false;
     const gallery = galleries[path];
     let template = path === "/contato" ? "contact" : "home";
     if (gallery) template = gallery.channel ? "channel" : "gallery";
@@ -681,7 +732,9 @@
     handleHomeKeys = null;
     syncHomeMotion = null;
     if (gallery?.channel) {
+      page.querySelector("h1").textContent = gallery.title;
       page.querySelector(".channel-page p").textContent = gallery.summary;
+      if (gallery.art) page.querySelector(".channel-page img").src = imagePath({ arquivo: gallery.art });
       const link = page.querySelector(".channel-page a");
       link.href = gallery.url;
       link.hidden = false;
@@ -817,10 +870,11 @@
   renderRoute(getRoute());
   window.addEventListener("hashchange", navigate);
   power.disabled = false;
-  window.watchHfCatalog?.((items, assetBase) => {
+  window.watchHfCatalog?.((items, assetBase, coverData) => {
     designs.splice(0, designs.length, ...items);
     liveAssetBase = assetBase;
     galleryRefreshPending = true;
+    if (loadCovers(coverData)) coversRefreshPending = true;
     refreshLiveGallery();
   });
 })();
