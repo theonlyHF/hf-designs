@@ -1,1 +1,1 @@
-window.HF_HOME = {"color":"","image":"","effect":null,"sounds":null};
+window.HF_HOME = {"color":"","image":"","effect":"waves","sounds":null};
