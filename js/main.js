@@ -3,8 +3,7 @@
 
   const designs = window.HF_DESIGNS;
   let liveAssetBase = "assets/designs/";
-  let galleryRefreshPending = false;
-  let coversRefreshPending = false;
+  let liveRefreshPending = false;
   const main = document.querySelector("main");
   const screen = document.querySelector(".screen-scroll");
   const rig = document.querySelector(".rig");
@@ -722,34 +721,36 @@
   }
 
   function refreshLiveGallery() {
-    if (dialog.open || transitioning) return;
-    if (coversRefreshPending && activeRoute === "/") {
-      if (main.querySelector(".has-open-case, .is-closing")) return;
+    if (!liveRefreshPending || transitioning) return;
+    liveRefreshPending = false;
+    if (activeRoute === "/") {
       const focusedCover = main.querySelector(".game-cover:focus-within")?.dataset.collection;
+      const centered = main.querySelector(".game-cover.is-centered")?.dataset.collection;
+      const position = libraryRoutes.indexOf("/" + centered);
+      if (position >= 0) coverPosition = position;
       renderRoute("/");
       if (focusedCover) main.querySelector(`[data-collection="${focusedCover}"] .case-trigger`)?.focus({ preventScroll: true });
       return;
     }
+    if (activeRoute === "/contato") return;
     const gallery = galleries[activeRoute];
-    if (coversRefreshPending && !gallery && activeRoute !== "/contato" && activeRoute !== "/") {
+    if (!gallery) {
       location.hash = "/";
       return;
     }
-    if (!gallery || !galleryRefreshPending) return;
     if (gallery.channel) {
-      if (coversRefreshPending) renderRoute(activeRoute);
+      renderRoute(activeRoute);
       return;
     }
     const activeFilter = Number(main.querySelector('.filters [aria-pressed="true"]')?.textContent);
     const scroll = screen.scrollTop;
-    const focused = main.contains(document.activeElement);
+    const focused = dialog.open || main.contains(document.activeElement);
+    if (dialog.open) dialog.close();
     const page = document.querySelector("#gallery-template").content.cloneNode(true);
     renderGallery(page, gallery, activeFilter);
     main.replaceChildren(page);
     screen.scrollTop = scroll;
     if (focused) main.querySelector('.filters [aria-pressed="true"]').focus({ preventScroll: true });
-    galleryRefreshPending = false;
-    coversRefreshPending = false;
   }
 
   function getRoute() {
@@ -758,8 +759,7 @@
   }
 
   function renderRoute(path, moveFocus = false) {
-    galleryRefreshPending = false;
-    coversRefreshPending = false;
+    liveRefreshPending = false;
     const gallery = galleries[path];
     let template = path === "/contato" ? "contact" : "home";
     if (gallery) template = gallery.channel ? "channel" : "gallery";
@@ -906,11 +906,12 @@
   window.addEventListener("hashchange", navigate);
   power.disabled = false;
   window.watchHfCatalog?.((items, assetBase, coverData, homeData) => {
-    designs.splice(0, designs.length, ...items);
+    const designsChanged = JSON.stringify(designs) !== JSON.stringify(items);
+    if (designsChanged) designs.splice(0, designs.length, ...items);
     liveAssetBase = assetBase;
     applyHomeSettings(homeData);
-    galleryRefreshPending = true;
-    if (loadCovers(coverData)) coversRefreshPending = true;
+    const coversChanged = loadCovers(coverData);
+    if (designsChanged || coversChanged) liveRefreshPending = true;
     refreshLiveGallery();
   });
 })();
