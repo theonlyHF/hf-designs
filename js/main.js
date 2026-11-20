@@ -23,6 +23,8 @@
   const viewerIndex = dialog.querySelector("[data-viewer-index]");
   const viewerTitle = dialog.querySelector("#viewer-title");
   const viewerDetails = dialog.querySelector("[data-viewer-details]");
+  const viewerDescription = dialog.querySelector("[data-viewer-description]");
+  const viewerContact = dialog.querySelector(".viewer-contact");
   const viewerExpand = dialog.querySelector("[data-expand]");
   const viewerVariants = dialog.querySelector("[data-variants]");
   const selections = new Set(["kurt-cobain-poster-01.png", "lewis-hamilton-poster.png", "michael-03.png",
@@ -170,6 +172,25 @@
   let opener;
 
   const imagePath = design => liveAssetBase + encodeURIComponent(design.arquivo);
+  let analyticsStarted = false;
+  function startAnalytics(code) {
+    if (analyticsStarted || location.origin !== "https://theonlyhf.github.io" ||
+      !["/hf-designs/", "/hf-designs/index.html"].includes(location.pathname) ||
+      !/^[a-z0-9][a-z0-9-]{0,59}$/.test(code ?? "")) return;
+    analyticsStarted = true;
+    const script = document.createElement("script");
+    script.src = "https://gc.zgo.at/count.js";
+    script.async = true;
+    script.dataset.goatcounter = "https://" + code + ".goatcounter.com/count";
+    document.head.append(script);
+  }
+  function httpsLink(value, fallback) {
+    try {
+      const url = new URL(value);
+      if (url.protocol === "https:" && !url.username && !url.password) return url.href;
+    } catch {}
+    return fallback;
+  }
   function applyHomeSettings(settings) {
     if (settings && typeof settings === "object") {
       home = {
@@ -177,10 +198,20 @@
         image: typeof settings.image === "string" && imageFile.test(settings.image) ? settings.image : "",
         effect: homeEffects.includes(settings.effect) ? settings.effect : "waves",
         bootPreset: ["classic", "crystal", "pulse", "silent"].includes(settings.bootPreset) ? settings.bootPreset : "classic",
+        instagram: httpsLink(settings.instagram, "https://www.instagram.com/hf.designs01/"),
+        discord: httpsLink(settings.discord, "https://discord.gg/fCq5MfF49"),
+        youtube: httpsLink(settings.youtube, standardGalleries["/canal"].url),
+        contactLabel: typeof settings.contactLabel === "string" ? settings.contactLabel.trim().slice(0, 60) : "",
         sounds: settings.sounds && typeof settings.sounds === "object"
           ? Object.fromEntries(Object.entries(settings.sounds).filter(([, file]) => typeof file === "string" && soundFile.test(file)))
           : {},
       };
+      startAnalytics(settings.analyticsCode);
+      viewerContact.href = home.instagram;
+      viewerContact.textContent = home.contactLabel || "Quero um design assim";
+      syncContactLinks(main);
+      const currentChannel = main.querySelector(".channel-page a");
+      if (currentChannel) currentChannel.href = home.youtube;
     }
     screen.classList.toggle("has-home-color", Boolean(home.color));
     screen.classList.toggle("has-home-image", Boolean(home.image));
@@ -191,6 +222,13 @@
     applyHomeEffect();
   }
   applyHomeSettings(window.HF_HOME);
+  function syncContactLinks(page) {
+    const discord = page.querySelector('.contact-links a[aria-label="Discord"]');
+    if (!discord) return;
+    discord.href = home.discord || discord.href;
+    const instagram = page.querySelector('.contact-links a[aria-label="Instagram"]');
+    instagram.href = home.instagram || instagram.href;
+  }
   function syncScene(path) {
     const gallery = Object.hasOwn(galleries, path);
     const fallback = gallery ? "gallery" : "home";
@@ -223,6 +261,8 @@
     const design = viewerItems[viewerPosition];
     viewerTitle.textContent = design.titulo;
     viewerDetails.textContent = design.categoria + " · " + yearLabel(design);
+    viewerDescription.textContent = typeof design.descricao === "string" ? design.descricao.trim() : "";
+    viewerDescription.hidden = !viewerDescription.textContent;
     viewerIndex.textContent = indexLabel(viewerPosition, viewerItems.length);
     viewerImage.alt = design.titulo + " — " + design.categoria;
     viewerImage.src = imagePath(design);
@@ -900,10 +940,11 @@
       page.querySelector(".channel-page p").textContent = gallery.summary;
       if (gallery.art) page.querySelector(".channel-page img").src = imagePath({ arquivo: gallery.art });
       const link = page.querySelector(".channel-page a");
-      link.href = gallery.url;
+      link.href = home.youtube || gallery.url;
       link.hidden = false;
       page.querySelector(".eject-button").addEventListener("click", ejectGallery);
     } else if (gallery) renderGallery(page, gallery);
+    if (path === "/contato") syncContactLinks(page);
     if (path === "/") renderHome(page);
 
     if (dialog.open) dialog.close();

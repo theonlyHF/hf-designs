@@ -1111,6 +1111,7 @@ img { display: block; max-width: 100%; }
 .viewer-bottom { margin-top: .65rem; }
 .viewer-bottom h2 { margin: 0; font: 700 clamp(.95rem, 3vw, 1.2rem)/1.2 var(--display); }
 .viewer-bottom p { margin: .3rem 0 0; }
+.viewer-description { color: var(--muted); font-size: .86rem; overflow-wrap: anywhere; white-space: pre-wrap; }
 .viewer-image { display: grid; place-items: center; min-height: min(10rem, 28dvh); background: var(--screen); }
 .viewer-image img { width: auto; height: auto; max-width: 100%; max-height: 72dvh; object-fit: contain; }
 .viewer-nav { display: flex; gap: .35rem; }
