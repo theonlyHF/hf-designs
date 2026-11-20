@@ -35,28 +35,34 @@
       plural: "designs",
     },
     "/banners": {
+      title: "Banners",
       isBanner: true,
       accepts: isBanner,
       singular: "banner",
       plural: "banners",
     },
     "/posters": {
+      title: "Pôsteres",
       accepts: isPoster,
       singular: "pôster",
       plural: "pôsteres",
     },
     "/estampas": {
+      title: "Estampas",
       accepts: isPrint,
       singular: "estampa",
       plural: "estampas",
     },
     "/outros": {
+      title: "Outros designs",
       accepts: item => !isBanner(item) && !isPoster(item) && !isPrint(item),
       singular: "design",
       plural: "designs",
     },
     "/canal": {
+      title: "Meu canal",
       channel: true,
+      summary: "Gameplays de jogos variados, com vídeos novos quando tenho tempo de gravar.",
       url: "https://www.youtube.com/@theonlyhf",
     },
   };
@@ -64,7 +70,8 @@
   const color = /^#[a-f\d]{6}$/i;
   const coverColors = ["front", "accent", "back"];
   let covers = [];
-  let galleries = {};
+  const imageFile = /^[^\\/:*?"<>|]+\.(png|jpe?g|webp|gif|avif)$/i;
+  let galleries = { ...standardGalleries };
   let libraryRoutes = [];
 
   function loadCovers(input) {
@@ -79,15 +86,14 @@
       seen.add(entry.id);
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
-        art: typeof entry.art === "string" && /^[^\\/:*?"<>|]+\.(png|jpe?g|webp|gif|avif)$/i.test(entry.art) ? entry.art : "",
+        art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
         category: standard ? "" : entry.category,
         ...Object.fromEntries(coverColors.map(key => [key, typeof entry[key] === "string" && color.test(entry[key]) ? entry[key] : ""])),
       });
     }
-    if (!Object.keys(standardGalleries).every(route => route === "/designs" || seen.has(route.slice(1)))) return false;
     if (JSON.stringify(next) === JSON.stringify(covers)) return false;
     covers = next;
-    galleries = { "/designs": standardGalleries["/designs"] };
+    galleries = { ...standardGalleries };
     for (const cover of covers) {
       const route = "/" + cover.id;
       galleries[route] = {
@@ -104,8 +110,9 @@
   }
 
   loadCovers(window.HF_COVERS);
-  const appearance = { style: "square", theme: "violet", crt: "silver" };
-  const appearanceOptions = { style: ["square", "vertical"], theme: ["violet", "blue", "green"], crt: ["silver", "graphite", "ivory"] };
+  const appearance = { style: "square", theme: "site", crt: "silver" };
+  const appearanceOptions = { style: ["square", "vertical"], theme: ["site", "violet", "blue", "green"], crt: ["silver", "graphite", "ivory"] };
+  let home = { color: "", image: "" };
 
   let activeRoute;
   let bootComplete = false;
@@ -129,6 +136,21 @@
   let opener;
 
   const imagePath = design => liveAssetBase + encodeURIComponent(design.arquivo);
+  function applyHomeSettings(settings) {
+    if (settings && typeof settings === "object") {
+      home = {
+        color: typeof settings.color === "string" && color.test(settings.color) ? settings.color : "",
+        image: typeof settings.image === "string" && imageFile.test(settings.image) ? settings.image : "",
+      };
+    }
+    screen.classList.toggle("has-home-color", Boolean(home.color));
+    screen.classList.toggle("has-home-image", Boolean(home.image));
+    if (home.color) screen.style.setProperty("--studio-home-color", home.color);
+    else screen.style.removeProperty("--studio-home-color");
+    if (home.image) screen.style.setProperty("--studio-home-image", `url("${imagePath({ arquivo: home.image })}")`);
+    else screen.style.removeProperty("--studio-home-image");
+  }
+  applyHomeSettings(window.HF_HOME);
   const yearLabel = design => design.ano ?? "Sem ano";
   const indexLabel = (position, total) =>
     String(position + 1).padStart(2, "0") + " / " + String(total).padStart(2, "0");
@@ -245,6 +267,14 @@
         });
       }
     }
+    if (!libraryRoutes.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-covers";
+      empty.textContent = "Nenhuma capa disponível.";
+      flow.append(empty);
+      backToggle.disabled = true;
+      return;
+    }
     const template = document.querySelector("#cover-template");
     const entries = libraryRoutes.map(route => {
       const collection = galleries[route];
@@ -311,6 +341,7 @@
 
     function showBack(show, animate = false) {
       const entry = entries[coverPosition];
+      if (!entry) return;
       const { cover, model } = entry;
       if (cover.classList.contains("is-back-facing") === show) return;
       const from = rotationAngle(entry);
@@ -700,6 +731,10 @@
       return;
     }
     const gallery = galleries[activeRoute];
+    if (coversRefreshPending && !gallery && activeRoute !== "/contato" && activeRoute !== "/") {
+      location.hash = "/";
+      return;
+    }
     if (!gallery || !galleryRefreshPending) return;
     if (gallery.channel) {
       if (coversRefreshPending) renderRoute(activeRoute);
@@ -870,9 +905,10 @@
   renderRoute(getRoute());
   window.addEventListener("hashchange", navigate);
   power.disabled = false;
-  window.watchHfCatalog?.((items, assetBase, coverData) => {
+  window.watchHfCatalog?.((items, assetBase, coverData, homeData) => {
     designs.splice(0, designs.length, ...items);
     liveAssetBase = assetBase;
+    applyHomeSettings(homeData);
     galleryRefreshPending = true;
     if (loadCovers(coverData)) coversRefreshPending = true;
     refreshLiveGallery();

@@ -22,7 +22,7 @@
         if (!data.designs.every(item => item && typeof item.arquivo === "string" &&
           allowedImage.test(item.arquivo) && typeof item.titulo === "string" &&
           typeof item.categoria === "string" && (item.ano === null || Number.isInteger(item.ano)))) return null;
-        return { timestamp: data.updatedAt, items: data.designs, covers: data.covers, base };
+        return { timestamp: data.updatedAt, items: data.designs, covers: data.covers, home: data.home, base };
       } catch {
         return null;
       }
@@ -37,7 +37,7 @@
         const recent = remote && (!published || remote.timestamp > published.timestamp) ? remote : published;
         if (!recent || recent.timestamp <= newest) return;
         newest = recent.timestamp;
-        update(recent.items, new URL("assets/designs/", recent.base).href, recent.covers);
+        update(recent.items, new URL("assets/designs/", recent.base).href, recent.covers, recent.home);
       } finally {
         pending = false;
       }
