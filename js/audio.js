@@ -12,6 +12,7 @@
   let lastHover = -Infinity;
   let muted = false;
   let scene;
+  let sceneFile = "";
   let music;
 
   function tone({ frequency, endFrequency, offset = 0, attack, length, volume, waveform = "sine" }, output = bus) {
@@ -97,8 +98,25 @@
     }
   }
 
-  function startMusic() {
+  function startMusic(useDefault = false) {
     if (!scene || context?.state !== "running" || music) return;
+    if (sceneFile && !useDefault) {
+      const element = new Audio();
+      const track = { element };
+      const fallback = () => {
+        if (music !== track) return;
+        stopMusic();
+        startMusic(true);
+      };
+      element.loop = true;
+      element.volume = .14;
+      element.muted = muted;
+      element.addEventListener("error", fallback, { once: true });
+      music = track;
+      element.src = sceneFile;
+      element.play().catch(fallback);
+      return;
+    }
     const track = scene;
     const chords = progressions[track];
     const gallery = track === "gallery";
@@ -138,23 +156,34 @@
     schedule();
   }
 
-  function setScene(nextScene) {
-    if (nextScene === scene) return;
-    scene = nextScene;
-    if (music) {
-      const { gain, timer } = music;
-      clearInterval(timer);
-      gain.gain.cancelScheduledValues(context.currentTime);
-      gain.gain.setTargetAtTime(0, context.currentTime, .12);
-      setTimeout(() => gain.disconnect(), 650);
-      music = null;
+  function stopMusic() {
+    if (!music) return;
+    const { element, gain, timer } = music;
+    music = null;
+    if (element) {
+      element.pause();
+      element.removeAttribute("src");
+      element.load();
+      return;
     }
+    clearInterval(timer);
+    gain.gain.cancelScheduledValues(context.currentTime);
+    gain.gain.setTargetAtTime(0, context.currentTime, .12);
+    setTimeout(() => gain.disconnect(), 650);
+  }
+
+  function setScene(nextScene, nextFile = "") {
+    if (nextScene === scene && nextFile === sceneFile) return;
+    scene = nextScene;
+    sceneFile = nextFile;
+    stopMusic();
     startMusic();
   }
 
   function toggleMute() {
     muted = !muted;
     if (bus) bus.gain.setTargetAtTime(muted ? 0 : .4, context.currentTime, .045);
+    if (music?.element) music.element.muted = muted;
     return muted;
   }
 

@@ -70,6 +70,7 @@
   const coverColors = ["front", "accent", "back"];
   let covers = [];
   const imageFile = /^[^\\/:*?"<>|]+\.(png|jpe?g|webp|gif|avif)$/i;
+  const soundFile = /^[^\\/:*?"<>|]+\.(mp3|ogg|wav|m4a)$/i;
   let galleries = { ...standardGalleries };
   let libraryRoutes = [];
 
@@ -86,6 +87,7 @@
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
+        frame: typeof entry.frame === "string" && imageFile.test(entry.frame) ? entry.frame : "",
         category: standard ? "" : entry.category,
         ...Object.fromEntries(coverColors.map(key => [key, typeof entry[key] === "string" && color.test(entry[key]) ? entry[key] : ""])),
       });
@@ -111,7 +113,7 @@
   loadCovers(window.HF_COVERS);
   const appearance = { style: "square", theme: "site", crt: "silver" };
   const appearanceOptions = { style: ["square", "vertical"], theme: ["site", "violet", "blue", "green"], crt: ["silver", "graphite", "ivory"] };
-  let home = { color: "", image: "" };
+  let home = { color: "", image: "", sounds: {} };
 
   let activeRoute;
   let bootComplete = false;
@@ -140,6 +142,9 @@
       home = {
         color: typeof settings.color === "string" && color.test(settings.color) ? settings.color : "",
         image: typeof settings.image === "string" && imageFile.test(settings.image) ? settings.image : "",
+        sounds: settings.sounds && typeof settings.sounds === "object"
+          ? Object.fromEntries(Object.entries(settings.sounds).filter(([, file]) => typeof file === "string" && soundFile.test(file)))
+          : {},
       };
     }
     screen.classList.toggle("has-home-color", Boolean(home.color));
@@ -150,6 +155,14 @@
     else screen.style.removeProperty("--studio-home-image");
   }
   applyHomeSettings(window.HF_HOME);
+  function syncScene(path) {
+    const gallery = Object.hasOwn(galleries, path);
+    const fallback = gallery ? "gallery" : "home";
+    const key = path.slice(1) || "home";
+    const file = (Object.hasOwn(home.sounds, key) && home.sounds[key]) || (gallery && home.sounds.gallery);
+    const url = file ? new URL("../sounds/" + encodeURIComponent(file), new URL(liveAssetBase, document.baseURI)).href : "";
+    window.hfAudio.setScene(fallback, url);
+  }
   const yearLabel = design => design.ano ?? "Sem ano";
   const indexLabel = (position, total) =>
     String(position + 1).padStart(2, "0") + " / " + String(total).padStart(2, "0");
@@ -288,6 +301,10 @@
         if (!collection[key]) continue;
         cover.classList.add("has-cover-" + key);
         cover.style.setProperty("--art-" + key, collection[key]);
+      }
+      if (collection.frame) {
+        cover.classList.add("has-cover-frame");
+        cover.style.setProperty("--cover-frame-image", `url("${imagePath({ arquivo: collection.frame })}")`);
       }
       trigger.setAttribute("aria-label", "Abrir caixa: " + collection.title);
       disc.id = "disc-" + cover.dataset.collection;
@@ -780,7 +797,7 @@
     if (dialog.open) dialog.close();
     main.replaceChildren(page);
     activeRoute = path;
-    if (bootComplete) window.hfAudio.setScene(gallery ? "gallery" : "home");
+    if (bootComplete) syncScene(path);
     header.hidden = Boolean(gallery);
     screen.classList.toggle("is-home", path === "/");
     for (const link of navigation) {
@@ -808,8 +825,11 @@
 
     try {
       const animation = ejectOverlay.getAnimations().find(motion => motion.animationName === "eject-sequence");
-      if (animation) await animation.finished;
-      else await new Promise(resolve => setTimeout(resolve, 5000));
+      if (animation) await animation.finished.catch(() => {});
+      else {
+        const duration = parseFloat(getComputedStyle(ejectOverlay).getPropertyValue("--eject-duration"));
+        await new Promise(resolve => setTimeout(resolve, duration || 850));
+      }
     } finally {
       ejectOverlay.hidden = true;
       screen.inert = false;
@@ -835,6 +855,7 @@
       transitioning = false;
       refreshLiveGallery();
       if (requestedRoute !== activeRoute) navigate();
+      else syncScene(activeRoute);
     }
   }
 
@@ -911,6 +932,7 @@
     liveAssetBase = assetBase;
     applyHomeSettings(homeData);
     const coversChanged = loadCovers(coverData);
+    if (bootComplete && !transitioning) syncScene(activeRoute);
     if (designsChanged || coversChanged) liveRefreshPending = true;
     refreshLiveGallery();
   });

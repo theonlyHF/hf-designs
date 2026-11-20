@@ -738,6 +738,12 @@ img { display: block; max-width: 100%; }
 }
 .has-cover-front .cover-art { background: radial-gradient(ellipse at 35% 20%, var(--art-front), #100a17); }
 .has-cover-front .cover-art img { opacity: .65; mix-blend-mode: luminosity; }
+.coverflow .game-cover.has-cover-frame :is(.case-trigger, .case-edge, .cover-spine, .cover-edition),
+.coverflow .game-cover.has-cover-frame .case-model::before {
+  background-image: linear-gradient(#0a08123d, #100b1d5c), var(--cover-frame-image);
+  background-position: center;
+  background-size: cover;
+}
 .game-cover.is-distant .cover-art strong {
   inset-inline: .65rem;
   font-size: clamp(.92rem, 1.8vw, 1.55rem);
@@ -848,18 +854,19 @@ img { display: block; max-width: 100%; }
 #transition.is-fade { background: var(--screen); }
 
 .eject-overlay {
+  --eject-duration: 850ms;
   position: absolute;
   z-index: 9;
   inset: 0;
   display: grid;
   place-items: center;
   background: radial-gradient(ellipse at center, #2b1640, #110a1e 66%);
-  animation: eject-sequence 5s linear both;
+  animation: eject-sequence var(--eject-duration) linear both;
 }
 .eject-display { display: grid; justify-items: center; gap: 1rem; width: min(15rem, 60%); }
 .eject-display .eyebrow { color: #ecd9fc; }
-.eject-disc { width: 61%; animation: eject-disc 5s ease-in-out both; }
-.eject-progress { width: 100%; height: 2px; background: #d5b6f5; transform-origin: left; animation: eject-progress 5s linear both; }
+.eject-disc { width: 61%; animation: eject-disc var(--eject-duration) ease-in-out both; }
+.eject-progress { width: 100%; height: 2px; background: #d5b6f5; transform-origin: left; animation: eject-progress var(--eject-duration) linear both; }
 @keyframes eject-sequence {
   0% { opacity: 0; }
   12%, 100% { opacity: 1; }
@@ -1046,5 +1053,6 @@ img { display: block; max-width: 100%; }
   *:not(.coverflow.has-full-motion *)::after { animation: none !important; transition: none !important; }
   .intro-sweep { display: none; }
   .eject-progress { display: none; }
+  .eject-overlay { --eject-duration: 240ms; }
 }
 
