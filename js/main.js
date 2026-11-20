@@ -113,6 +113,8 @@
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
         artMode: entry.artMode === "default" ? "default" : "",
+        brandText: typeof entry.brandText === "string" ? entry.brandText.trim().slice(0, 36) : "",
+        brandColor: typeof entry.brandColor === "string" && color.test(entry.brandColor) ? entry.brandColor : "",
         cropSource: typeof entry.cropSource === "string" && imageFile.test(entry.cropSource) ? entry.cropSource : "",
         cropSquare: validCrop(entry.cropSquare),
         cropVertical: validCrop(entry.cropVertical),
@@ -378,6 +380,7 @@
 
       cover.dataset.collection = route.slice(1);
       cover.classList.toggle("has-brand-cover", !artwork);
+      if (!artwork) renderCoverCenter(cover, collection);
       applyCoverCrop(cover, collection, artwork?.arquivo);
       cover.dataset.frame = collection.frameStyle;
       disc.dataset.disc = collection.discStyle;
@@ -733,6 +736,16 @@
     if (collection.artMode === "default") return null;
     if (collection.art) return { arquivo: collection.art };
     return collection.accepts ? designs.find(collection.accepts) : null;
+  }
+
+  function renderCoverCenter(cover, collection) {
+    const center = cover.querySelector(".cover-center");
+    const text = collection.brandText;
+    center.hidden = false;
+    center.classList.toggle("is-logo", !text);
+    center.textContent = text;
+    if (text) center.style.setProperty("--brand-length", Math.max(7, Array.from(text.toUpperCase()).length));
+    if (collection.brandColor) center.style.setProperty("--brand-color", collection.brandColor);
   }
 
   function makeCard(design, index, items) {

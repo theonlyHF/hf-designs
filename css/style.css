@@ -824,18 +824,28 @@ img { display: block; max-width: 100%; }
 .game-cover.has-brand-cover .cover-art {
   background: linear-gradient(0deg, #08070a54, #0b0b0c12 65%, #0b0b0c25),
     #171719 url("../assets/hf-cover-fabric.jpg") center / cover no-repeat;
+  container-type: inline-size;
 }
-.has-brand-cover .cover-art::before {
-  content: "";
+.cover-center {
   position: absolute;
   z-index: 1;
   top: 46%;
   left: 50%;
+  width: 86%;
+  transform: translate(-50%, -50%);
+  color: var(--brand-color, #f1f4ff);
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  font: 700 clamp(.62rem, calc(132cqw / var(--brand-length, 7)), 2.8rem)/.98 var(--display);
+  letter-spacing: -.05em;
+  filter: drop-shadow(0 2px 9px #0009);
+}
+.cover-center.is-logo {
   width: 58%;
   aspect-ratio: 80 / 54;
-  transform: translate(-50%, -50%);
-  background: url("../assets/hf-mark.svg") center / contain no-repeat;
-  filter: drop-shadow(0 2px 9px #0009);
+  background: currentColor;
+  mask: url("../assets/hf-mark.svg") center / contain no-repeat;
 }
 .has-brand-cover .cover-youtube { display: none; }
 .coverflow .game-cover.has-brand-cover .cover-art strong {
