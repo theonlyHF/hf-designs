@@ -781,6 +781,16 @@ img { display: block; max-width: 100%; }
   filter: drop-shadow(0 2px 4px #0009);
 }
 .game-cover[data-collection="banners"] .cover-art img { object-position: 65% center; }
+[data-case-style="square"] .has-crop-square .cover-art > img {
+  object-position: var(--square-crop-position);
+  transform-origin: var(--square-crop-position);
+  transform: scale(var(--square-crop-zoom));
+}
+[data-case-style="vertical"] .has-crop-vertical .cover-art > img {
+  object-position: var(--vertical-crop-position);
+  transform-origin: var(--vertical-crop-position);
+  transform: scale(var(--vertical-crop-zoom));
+}
 .cover-art::after {
   content: "";
   position: absolute;

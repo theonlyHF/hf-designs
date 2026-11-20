@@ -77,6 +77,22 @@
   let galleries = { ...standardGalleries };
   let libraryRoutes = [];
 
+  function validCrop(crop) {
+    if (!crop || !Number.isInteger(crop.x) || !Number.isInteger(crop.y) || !Number.isInteger(crop.zoom)) return null;
+    return crop.x >= 0 && crop.x <= 100 && crop.y >= 0 && crop.y <= 100 && crop.zoom >= 100 && crop.zoom <= 300
+      ? { x: crop.x, y: crop.y, zoom: crop.zoom } : null;
+  }
+
+  function applyCoverCrop(cover, collection, file) {
+    if (!file || collection.cropSource !== file) return;
+    for (const [format, crop] of [["square", collection.cropSquare], ["vertical", collection.cropVertical]]) {
+      if (!crop) continue;
+      cover.classList.add("has-crop-" + format);
+      cover.style.setProperty("--" + format + "-crop-position", crop.x + "% " + crop.y + "%");
+      cover.style.setProperty("--" + format + "-crop-zoom", crop.zoom / 100);
+    }
+  }
+
   function loadCovers(input) {
     if (!Array.isArray(input)) return false;
     const seen = new Set();
@@ -90,6 +106,9 @@
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
+        cropSource: typeof entry.cropSource === "string" && imageFile.test(entry.cropSource) ? entry.cropSource : "",
+        cropSquare: validCrop(entry.cropSquare),
+        cropVertical: validCrop(entry.cropVertical),
         frame: typeof entry.frame === "string" && imageFile.test(entry.frame) ? entry.frame : "",
         frameStyle: frameStyles.includes(entry.frameStyle) ? entry.frameStyle : "classic",
         discStyle: discStyles.includes(entry.discStyle) ? entry.discStyle : "silver",
@@ -309,6 +328,7 @@
       const disc = cover.querySelector(".disc-link");
 
       cover.dataset.collection = route.slice(1);
+      applyCoverCrop(cover, collection, artwork?.arquivo);
       cover.dataset.frame = collection.frameStyle;
       disc.dataset.disc = collection.discStyle;
       cover.classList.toggle("cover-channel", Boolean(collection.channel));
