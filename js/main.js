@@ -112,6 +112,7 @@
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
         art: typeof entry.art === "string" && imageFile.test(entry.art) ? entry.art : "",
+        artMode: entry.artMode === "default" ? "default" : "",
         cropSource: typeof entry.cropSource === "string" && imageFile.test(entry.cropSource) ? entry.cropSource : "",
         cropSquare: validCrop(entry.cropSquare),
         cropVertical: validCrop(entry.cropVertical),
@@ -371,11 +372,12 @@
     const entries = libraryRoutes.map(route => {
       const collection = galleries[route];
       const cover = template.content.firstElementChild.cloneNode(true);
-      const artwork = collection.art ? { arquivo: collection.art } : collection.accepts && designs.find(collection.accepts);
+      const artwork = resolveCoverArt(collection);
       const trigger = cover.querySelector(".case-trigger");
       const disc = cover.querySelector(".disc-link");
 
       cover.dataset.collection = route.slice(1);
+      cover.classList.toggle("has-brand-cover", !artwork);
       applyCoverCrop(cover, collection, artwork?.arquivo);
       cover.dataset.frame = collection.frameStyle;
       disc.dataset.disc = collection.discStyle;
@@ -725,6 +727,12 @@
       const index = entries.findIndex(entry => entry.trigger === trigger || entry.cover === cover);
       if (index >= 0) openCase(index);
     });
+  }
+
+  function resolveCoverArt(collection) {
+    if (collection.artMode === "default") return null;
+    if (collection.art) return { arquivo: collection.art };
+    return collection.accepts ? designs.find(collection.accepts) : null;
   }
 
   function makeCard(design, index, items) {
