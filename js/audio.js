@@ -14,10 +14,28 @@
   let bootTrack;
   let lastHover = -Infinity;
   let muted = false;
+  let savedMute = false;
+  let simpleMode = false;
+  let config;
+  let audioUrl = value => value;
+  let unlocked = false;
+  let lowpass;
+  let duck;
+  let scope;
+  let playlist = [];
+  let position = 0;
+  let playlistTimer;
+  const effects = new Map();
+  const fadingTracks = new Map();
+  const voices = new Map();
+  const lastCue = new Map();
+  const mobile = matchMedia("(pointer: coarse)");
+  const isMuted = () => muted || simpleMode || (mobile.matches && config?.master.muteOnMobile);
   const volumes = { music: 1, effects: 1 };
   try {
     const saved = JSON.parse(localStorage.getItem("hf-audio") || "{}");
     muted = saved.muted === true;
+    savedMute = typeof saved.muted === "boolean";
     for (const key of Object.keys(volumes)) {
       if (Number.isFinite(saved[key])) volumes[key] = Math.max(0, Math.min(1, saved[key]));
     }
@@ -40,6 +58,7 @@
     envelope.connect(output);
     oscillator.start(now);
     oscillator.stop(now + length + .01);
+    oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
   }
 
   // Vinheta original, com uma base grave, um acorde metálico e uma cauda harmônica.
@@ -107,7 +126,11 @@
       bootBus = context.createGain();
       bootBus.connect(bus);
       bus.connect(context.destination);
-      musicBus.connect(context.destination);
+      duck = context.createGain();
+      lowpass = context.createBiquadFilter();
+      lowpass.type = "lowpass";
+      lowpass.frequency.value = 22000;
+      musicBus.connect(duck).connect(lowpass).connect(context.destination);
       applyVolume();
       context.addEventListener("statechange", () => {
         if (context.state === "running" && scene) startMusic();
@@ -118,7 +141,11 @@
   }
 
   function powerOn(preset = "classic", file = "", repeat = false) {
+    unlocked = true;
+    if (simpleMode) return;
     prepareAudio();
+    if (config?.sfx.powerOn?.file) unlock();
+    cue("powerOn");
     if (repeat && !scene) bootPlayed = false;
     const playPreset = () => {
       if (context?.state === "running") startup(preset);
@@ -133,7 +160,7 @@
     const began = performance.now();
     bootTrack = element;
     element.volume = .35 * volumes.effects;
-    element.muted = muted;
+    element.muted = Boolean(isMuted());
     const fallback = () => {
       if (bootTrack !== element) return;
       finishBoot();
@@ -156,7 +183,17 @@
   }
 
   function startMusic(useDefault = false) {
-    if (!scene || context?.state !== "running" || music) return;
+    if (!scene || !unlocked || document.hidden || simpleMode || music || playlistTimer ||
+      (context && context.state !== "running")) return;
+    if (playlist.length && !useDefault) {
+      const track = playlist[position % playlist.length];
+      if (track.delayMs) playlistTimer = setTimeout(() => {
+        playlistTimer = null;
+        if (scene && !document.hidden) playTrack(track);
+      }, track.delayMs);
+      else playTrack(track);
+      return;
+    }
     if (sceneFile && !useDefault) {
       const element = new Audio();
       const track = { element };
@@ -167,13 +204,15 @@
       };
       element.loop = true;
       element.volume = .14 * volumes.music;
-      element.muted = muted;
+      element.muted = Boolean(isMuted());
+      element.preload = "metadata";
       element.addEventListener("error", fallback, { once: true });
       music = track;
       element.src = sceneFile;
       element.play().catch(fallback);
       return;
     }
+    if (!context) return;
     const track = scene;
     const chords = progressions[track];
     const gallery = track === "gallery";
@@ -214,13 +253,18 @@
   }
 
   function stopMusic() {
+    clearTimeout(playlistTimer);
+    playlistTimer = null;
+    for (const [record, timer] of fadingTracks) {
+      clearTimeout(timer);
+      disposeElement(record);
+    }
+    fadingTracks.clear();
     if (!music) return;
-    const { element, gain, timer } = music;
+    const { element, gain, timer, source, routeGain } = music;
     music = null;
     if (element) {
-      element.pause();
-      element.removeAttribute("src");
-      element.load();
+      disposeElement({element,source,routeGain});
       return;
     }
     clearInterval(timer);
@@ -229,26 +273,128 @@
     setTimeout(() => gain.disconnect(), 650);
   }
 
-  function setScene(nextScene, nextFile = "") {
-    if (nextScene === scene && nextFile === sceneFile) return;
+  function disposeElement({element,source,routeGain}) {
+    element.pause();
+    element.removeAttribute("src");
+    element.load();
+    source?.disconnect();
+    routeGain?.disconnect();
+  }
+
+  function playTrack(track, transitionIn = 0) {
+    const element = new Audio();
+    const record = { element, track };
+    const active = () => music === record;
+    music = record;
+    element.preload = "metadata";
+    if (location.protocol !== "file:") element.crossOrigin = "anonymous";
+    element.playbackRate = track.playbackRate;
+    element.loop = track.loop && track.loopStart === null && !track.trimEnd && !track.trimStart && !track.fadeOutMs;
+    if (context && location.protocol !== "file:") {
+      try {
+        record.source = context.createMediaElementSource(element);
+        record.routeGain = context.createGain();
+        record.routeGain.gain.value = 0;
+        record.source.connect(record.routeGain).connect(musicBus);
+      } catch {}
+    }
+    applyVolume();
+    function ramp(level, ms) {
+      if (!record.routeGain) return;
+      const gain = record.routeGain.gain;
+      gain.cancelScheduledValues(context.currentTime);
+      gain.setValueAtTime(gain.value, context.currentTime);
+      gain.linearRampToValueAtTime(level, context.currentTime + ms / 1000);
+    }
+    function advance(failed = false) {
+      if (!active()) return;
+      stopMusic();
+      if (failed) { startMusic(true); return; }
+      position++;
+      if (!track.gapMs) { startMusic(); return; }
+      playlistTimer = setTimeout(() => { playlistTimer = null; startMusic(); }, track.gapMs);
+    }
+    element.addEventListener("loadedmetadata", () => {
+      if (active() && track.trimStart < element.duration) element.currentTime = track.trimStart;
+    });
+    element.addEventListener("timeupdate", () => {
+      if (!active()) return;
+      const end = Math.min(track.loop && track.loopEnd || track.trimEnd || element.duration, element.duration);
+      const left = end - element.currentTime;
+      const upcoming = playlist[(position+1) % playlist.length];
+      if (!track.loop && !track.gapMs && !upcoming?.delayMs && playlist.length > 1 &&
+        record.routeGain && left > .03 && left * 1000 <= track.crossfadeMs) {
+        const milliseconds = left * 1000 / track.playbackRate;
+        ramp(0,milliseconds);
+        const cleanup = setTimeout(() => { fadingTracks.delete(record); disposeElement(record); }, milliseconds+70);
+        fadingTracks.set(record,cleanup);
+        position++;
+        playTrack(upcoming,milliseconds);
+        return;
+      }
+      if (left <= 0 && track.loop) {
+        element.currentTime = track.loopStart ?? track.trimStart;
+        record.fading = false;
+        ramp(.35 * track.volume, track.fadeInMs);
+      } else if (left <= 0 && track.trimEnd) advance();
+      else if (left * 1000 <= track.fadeOutMs && !record.fading) {
+        record.fading = true;
+        ramp(0, Math.max(0, left * 1000));
+      }
+    });
+    element.addEventListener("ended", () => {
+      if (!active()) return;
+      if (track.loop && element.duration > track.trimStart) {
+        element.currentTime = track.loopStart ?? track.trimStart;
+        record.fading = false;
+        ramp(.35 * track.volume, track.fadeInMs);
+        element.play().catch(() => advance(true));
+      } else advance();
+    });
+    element.addEventListener("error", () => advance(true), {once:true});
+    element.src = audioUrl(track.file);
+    element.play().then(() => { if (active()) ramp(.35 * track.volume, Math.max(transitionIn,track.fadeInMs)); }, () => advance(true));
+  }
+
+  function matchingTracks() {
+    const tracks = config?.tracks.filter(track => track.enabled && (!mobile.matches || track.mobile) &&
+      (track.scope === scope || track.scope === "all" || (scene === "gallery" && track.scope === "gallery"))) ?? [];
+    if (config?.mode === "shuffle") for (let n = tracks.length - 1; n > 0; n--) {
+      const other = Math.floor(Math.random() * (n+1));
+      [tracks[n], tracks[other]] = [tracks[other], tracks[n]];
+    }
+    return tracks;
+  }
+
+  function setScene(nextScene, nextFile = "", nextScope = null) {
+    if (nextScene === scene && nextFile === sceneFile && nextScope === scope) return;
     scene = nextScene;
     sceneFile = nextFile;
+    scope = nextScope;
+    playlist = matchingTracks();
+    position = 0;
     stopMusic();
     startMusic();
   }
 
   function toggleMute() {
     muted = !muted;
+    savedMute = true;
     saveVolume();
     return muted;
   }
 
   function applyVolume() {
-    if (bus) bus.gain.setTargetAtTime(muted ? 0 : .4 * volumes.effects, context.currentTime, .045);
-    if (musicBus) musicBus.gain.setTargetAtTime(muted ? 0 : .4 * volumes.music, context.currentTime, .045);
+    const master = config?.master.volume ?? 1;
+    if (bus) bus.gain.setTargetAtTime(isMuted() ? 0 : master * .4 * volumes.effects, context.currentTime, .045);
+    if (musicBus) musicBus.gain.setTargetAtTime(isMuted() ? 0 : master * .4 * volumes.music, context.currentTime, .045);
     if (music?.element) {
-      music.element.volume = .14 * volumes.music;
-      music.element.muted = muted;
+      music.element.volume = music.routeGain ? 1 : .14 * volumes.music * master * (music.track?.volume ?? 1);
+      music.element.muted = Boolean(isMuted());
+    }
+    if (bootTrack) {
+      bootTrack.muted = Boolean(isMuted());
+      bootTrack.volume = .35 * volumes.effects * master;
     }
   }
 
@@ -263,16 +409,56 @@
     saveVolume();
   }
 
-  function cue(name) {
-    if (!context) return;
+  function playEffect(name, effect) {
+    if (!effect.enabled) return;
+    const now = performance.now();
+    if (now - (lastCue.get(name) ?? -Infinity) < effect.cooldownMs) return;
+    lastCue.set(name, now);
+    const url = audioUrl(effect.file);
+    if (!effects.has(url)) {
+      if (effects.size >= 24) effects.delete(effects.keys().next().value);
+      const data = fetch(url).then(response => {
+        if (!response.ok) throw new Error("Efeito indisponível");
+        return response.arrayBuffer();
+      }).then(buffer => context.decodeAudioData(buffer)).catch(() => null);
+      effects.set(url, data);
+    }
+    effects.get(url).then(buffer => {
+      if (!buffer || document.hidden || isMuted() || context.state !== "running") return;
+      const count = voices.get(name) ?? 0;
+      if (count >= effect.maxVoices || [...voices.values()].reduce((a,b)=>a+b,0) >= 8) return;
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffer;
+      source.detune.value = (Math.random() * 2 - 1) * effect.pitchVariancePct * 17.3;
+      gain.gain.value = effect.volume;
+      source.connect(gain).connect(bus);
+      voices.set(name, count+1);
+      source.onended = () => { voices.set(name, voices.get(name)-1); source.disconnect(); gain.disconnect(); };
+      if (config?.ducking.enabled) {
+        duck.gain.cancelScheduledValues(context.currentTime);
+        duck.gain.setTargetAtTime(10 ** (config.ducking.amountDb/20), context.currentTime, config.ducking.attackMs / 1000);
+        duck.gain.setTargetAtTime(1, context.currentTime + Math.min(buffer.duration, 3), config.ducking.releaseMs / 1000);
+      }
+      source.start();
+    });
+  }
+
+  function cue(name, fallback = name) {
+    if (!context || document.hidden || isMuted()) return;
     if (context.state !== "running") {
       if (name !== "hover" && navigator.userActivation?.hasBeenActive) {
         context.resume().then(() => {
-          if (context.state === "running") cue(name);
+          if (context.state === "running") cue(name, fallback);
         }).catch(() => {});
       }
       return;
     }
+    const mapped = name === "select" ? "confirm" : name === "eject" ? "back" : name;
+    const effect = config?.sfx[mapped];
+    if (effect?.enabled === false) return;
+    if (effect?.file) { playEffect(mapped, effect); return; }
+    name = fallback;
     if (name === "eject") {
       eject();
       return;
@@ -283,12 +469,43 @@
       lastHover = now;
       tone({ frequency: 930, endFrequency: 690, attack: .008, length: .115, volume: .095 });
       tone({ frequency: 1470, endFrequency: 1080, offset: .012, attack: .007, length: .09, volume: .032 });
-    } else {
+    } else if (["select","confirm","open","close","move","back"].includes(name)) {
       lastHover = now;
       tone({ frequency: 523.25, endFrequency: 561, attack: .01, length: .145, volume: .115 });
       tone({ frequency: 783.99, offset: .05, attack: .015, length: .19, volume: .1 });
     }
   }
 
-  window.hfAudio = { powerOn, finishBoot, cue, setScene, toggleMute, setVolume, preferences: () => ({ ...volumes, muted }) };
+  function unlock() {
+    unlocked = true;
+    if (simpleMode || document.hidden) return;
+    prepareAudio();
+    if (context && context.state !== "running") context.resume().then(() => startMusic()).catch(() => {});
+    else startMusic();
+  }
+  function suspend() {
+    stopMusic();
+    finishBoot();
+    if (context?.state === "running") context.suspend().catch(() => {});
+  }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) suspend(); else if (unlocked) unlock(); });
+  window.addEventListener("pagehide", suspend);
+  window.addEventListener("pageshow", () => { if (unlocked && !document.hidden) unlock(); });
+  function configure(settings, resolver) {
+    const changed = JSON.stringify(config) !== JSON.stringify(settings);
+    config = settings;
+    audioUrl = resolver;
+    if (!savedMute) muted = config?.master.startMuted === true;
+    if (changed && scene) {
+      stopMusic();
+      playlist = matchingTracks();
+      position = 0;
+      startMusic();
+    }
+    applyVolume();
+  }
+  window.hfAudio = { powerOn, finishBoot, cue, setScene, toggleMute, setVolume, configure, unlock,
+    simple(enabled) { simpleMode = enabled; if (enabled) suspend(); else if (unlocked) unlock(); applyVolume(); },
+    overlay(open) { if (lowpass) lowpass.frequency.setTargetAtTime(open && config?.modalLowpass.enabled ? config.modalLowpass.hz : 22000, context.currentTime, .10); },
+    preferences: () => ({ ...volumes, muted: Boolean(isMuted()) }) };
 })();

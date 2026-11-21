@@ -1,88 +1,88 @@
 (() => {
   "use strict";
-
   const canvas = document.querySelector("#transition");
-  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  let grain;
+  let quality = navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 4 ? 1 : 2;
 
-  function createNoise(context, width, height) {
-    const frame = context.createImageData(width, height);
-    const pixels = frame.data;
-
-    return function drawNoise(strength) {
-      const bandHeight = 2 + Math.floor(Math.random() * 7);
-      for (let y = 0; y < height; y++) {
-        const interrupted = y % 23 < bandHeight;
-        const line = y % 3 === 0 ? .55 : 1;
-        const shift = interrupted ? Math.round(Math.random() * 26 - 13) * strength : 0;
-        const base = interrupted ? 39 : 8;
-        let blue = 0;
-
-        for (let x = 0; x < width; x++) {
-          const index = (y * width + x) * 4;
-          const grain = base + Math.random() * 130 * line;
-          const red = interrupted && (x + shift) % 36 < 9 ? 26 * strength : 0;
-          pixels[index] = grain + red;
-          pixels[index + 1] = grain;
-          pixels[index + 2] = interrupted ? blue + 27 * strength : grain;
-          pixels[index + 3] = 255;
-          blue = grain;
-        }
-      }
-
-      context.putImageData(frame, 0, 0);
-    };
+  function texture() {
+    if (grain) return grain;
+    grain = document.createElement("canvas");
+    grain.width = 192;
+    grain.height = 112;
+    const context = grain.getContext("2d");
+    const image = context.createImageData(grain.width, grain.height);
+    for (let i = 0; i < image.data.length; i += 4) {
+      const light = 16 + Math.random() * 32;
+      image.data[i] = light + 7;
+      image.data[i+1] = light;
+      image.data[i+2] = light + 15;
+      image.data[i+3] = 255;
+    }
+    context.putImageData(image, 0, 0);
+    return grain;
   }
 
-  // Redesenha o ruído a ~30 FPS em uma resolução limitada e encerra o loop ao final.
-  window.hfTransition = function runTransition(atPeak) {
-    const context = reducedMotion.matches ? null : canvas.getContext("2d");
-    const fade = !context;
-    const duration = fade ? 240 : 570;
-    const peak = fade ? .5 : .46;
-    let drawNoise;
-
+  window.hfTransition = function transition(swap, simple = false) {
+    if (!canvas || document.hidden) { swap(); return Promise.resolve(); }
+    let context = simple || reduced.matches || !quality ? null : canvas.getContext("2d");
+    const duration = context ? 330 : 190;
+    const peak = .46;
+    let sprite;
     if (context) {
-      const { clientWidth, clientHeight } = canvas.parentElement;
-      const scale = Math.min(320 / clientWidth, 200 / clientHeight, 1);
-      canvas.width = Math.max(1, Math.round(clientWidth * scale));
-      canvas.height = Math.max(1, Math.round(clientHeight * scale));
-      drawNoise = createNoise(context, canvas.width, canvas.height);
-    } else {
-      canvas.width = canvas.height = 1;
+      canvas.width = quality === 2 ? 192 : 96;
+      canvas.height = quality === 2 ? 112 : 56;
+      sprite = texture();
+      context.imageSmoothingEnabled = false;
+      context.drawImage(sprite, 0, 0, canvas.width, canvas.height);
     }
-
-    canvas.classList.toggle("is-fade", fade);
+    canvas.classList.toggle("is-fade", !context);
     canvas.style.opacity = "0";
     canvas.hidden = false;
 
-    return new Promise(resolve => {
-      let start;
-      let lastNoise = -Infinity;
+    return new Promise((resolve,reject) => {
+      let start, frame, last, samples = 0, total = 0;
       let swapped = false;
-
+      function commit() {
+        if (swapped) return;
+        swapped = true;
+        swap();
+      }
+      function finish(error) {
+        cancelAnimationFrame(frame);
+        document.removeEventListener("visibilitychange", hidden);
+        canvas.hidden = true;
+        if (error) reject(error); else resolve();
+      }
+      function hidden() {
+        if (!document.hidden) return;
+        try { commit(); finish(); } catch (error) { finish(error); }
+      }
       function tick(now) {
         start ??= now;
-        const progress = Math.min((now - start) / duration, 1);
-        const strength = progress < peak ? progress / peak : (1 - progress) / (1 - peak);
-
-        canvas.style.opacity = fade ? strength : Math.min(1, strength * 1.17);
-        if (drawNoise && now - lastNoise >= 30) {
-          drawNoise(strength);
-          lastNoise = now;
+        if (last && samples < 6) {
+          total += now-last;
+          samples++;
+          if (samples === 6 && total/samples > 24) {
+            quality = total/samples > 40 ? 0 : 1;
+            if (!quality) { context = null; canvas.classList.add("is-fade"); }
+          }
         }
-        if (!swapped && progress >= peak) {
-          swapped = true;
-          atPeak();
+        last = now;
+        const progress = Math.min((now-start)/duration,1);
+        const opacity = progress < peak ? progress/peak : (1-progress)/(1-peak);
+        canvas.style.opacity = String(opacity);
+        if (context && quality === 2) {
+          const y = Math.floor(progress*10)*11 % sprite.height;
+          const x = Math.floor(progress*17) % 9;
+          context.drawImage(sprite, x, y, sprite.width-x, 8, 0, y, canvas.width, 8);
         }
-        if (progress < 1) {
-          requestAnimationFrame(tick);
-        } else {
-          canvas.hidden = true;
-          resolve();
-        }
+        try { if (progress >= peak) commit(); } catch (error) { finish(error); return; }
+        if (progress < 1) frame = requestAnimationFrame(tick);
+        else finish();
       }
-
-      requestAnimationFrame(tick);
+      document.addEventListener("visibilitychange", hidden);
+      frame = requestAnimationFrame(tick);
     });
   };
 })();

@@ -6,8 +6,7 @@
   const github = new URL("refs/heads/main/", raw);
   const local = new URL("../", document.currentScript.src);
   const isPortfolio = local.hostname === "theonlyhf.github.io" && local.pathname === "/hf-designs/";
-  const interval = 5000;
-  const deploymentInterval = 20000;
+  const interval = isPortfolio ? 10000 : 5000;
   const headInterval = 90000;
   const allowedImage = /^[^\\/:*?"<>|]+\.(?:png|jpe?g|webp|gif|avif)$/i;
 
@@ -15,7 +14,8 @@
     if (location.protocol === "file:") return;
     let newest = 0;
     let pending = false;
-    let nextDeploymentCheck = 0;
+    let failures = 0;
+    let timer;
     let nextHeadCheck = 0;
     let lastHead;
 
@@ -23,7 +23,7 @@
       const abort = new AbortController();
       const timeout = setTimeout(() => abort.abort(), 3500);
       try {
-        const response = await fetch(url, { cache: "no-store", signal: abort.signal });
+        const response = await fetch(url, { cache: "no-cache", signal: abort.signal });
         return response.ok ? await response.json() : null;
       } catch {
         return null;
@@ -36,11 +36,14 @@
       const url = new URL("data/catalog.json", base);
       if (version) url.searchParams.set("v", version);
       const data = await json(url);
-      if (!data || !Number.isSafeInteger(data.updatedAt) || !Array.isArray(data.designs)) return null;
-      if (!data.designs.every(item => item && typeof item.arquivo === "string" &&
+      if (!data || (data.schemaVersion != null && data.schemaVersion !== 1) ||
+        !Number.isSafeInteger(data.updatedAt) || !Array.isArray(data.designs)) return null;
+      const items = data.designs.filter(item => item && typeof item.arquivo === "string" &&
         allowedImage.test(item.arquivo) && typeof item.titulo === "string" &&
-        typeof item.categoria === "string" && (item.ano === null || Number.isInteger(item.ano)))) return null;
-      return { timestamp: data.updatedAt, items: data.designs, covers: data.covers, home: data.home, base };
+        typeof item.categoria === "string");
+      if (items.length !== data.designs.length) console.debug("HF Designs ignorou registros inválidos.");
+      if (!items.length && data.designs.length) return null;
+      return { timestamp: data.updatedAt, items, covers: data.covers, home: data.home, base };
     }
 
     async function readHead(now) {
@@ -63,34 +66,29 @@
     }
 
     async function refresh() {
-      if (pending || document.hidden) return;
+      clearTimeout(timer);
+      if (pending || document.hidden || navigator.onLine === false) return;
       pending = true;
       try {
         const now = Date.now();
         const version = String(Math.floor(now / interval));
-        if (!isPortfolio) {
-          apply(await read(local, version));
-          return;
+        const deployed = await read(local);
+        let recent = deployed;
+        if (isPortfolio && (!deployed || now >= nextHeadCheck)) {
+          const fallback = await readHead(now) || await read(github, version);
+          if (fallback && (!recent || fallback.timestamp > recent.timestamp)) recent = fallback;
         }
-        const sources = [read(github, version)];
-        if (now >= nextDeploymentCheck) {
-          nextDeploymentCheck = now + deploymentInterval;
-          sources.unshift(read(local, version));
-        }
-        const revisions = (await Promise.all(sources)).filter(Boolean);
-        const recent = revisions.sort((a, b) => b.timestamp - a.timestamp)[0];
+        failures = recent ? 0 : Math.min(4, failures + 1);
         if (recent?.timestamp > newest) {
           apply(recent);
-        } else if (now >= nextHeadCheck) {
-          apply(await readHead(now));
         }
       } finally {
         pending = false;
+        if (!document.hidden) timer = setTimeout(refresh, interval * 2 ** failures);
       }
     }
 
-    refresh();
-    setInterval(refresh, interval);
+    timer = setTimeout(refresh, interval);
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("online", refresh);
   };

@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const designs = window.HF_DESIGNS;
+  const options = window.hfOptions;
+  const designs = options ? options.designs(window.HF_DESIGNS) : Array.isArray(window.HF_DESIGNS) ? window.HF_DESIGNS : [];
   let liveAssetBase = "assets/designs/";
   let liveRefreshPending = false;
   const main = document.querySelector("main");
@@ -10,11 +11,20 @@
   const intro = rig.querySelector(".site-intro");
   const power = rig.querySelector(".console-power");
   const powerLabel = power.querySelector("[data-power-label]");
+  const skipBoot = rig.querySelector(".console-skip");
+  const simpleButton = rig.querySelector(".console-simple");
+  const silentAudio = {
+    powerOn() {}, finishBoot() {}, cue() {}, setScene() {}, setVolume() {}, toggleMute: () => true,
+    preferences: () => ({muted:true, music:0, effects:0}),
+  };
+  const audio = window.hfAudio || silentAudio;
   const sound = rig.querySelector(".console-sound");
   const header = document.querySelector(".site-header");
   const ejectOverlay = document.querySelector(".eject-overlay");
   const navigation = document.querySelectorAll(".site-header nav a");
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  let simpleMode = remembered("hf-simple") === "yes" ||
+    (remembered("hf-simple") !== "no" && navigator.deviceMemory > 0 && navigator.deviceMemory <= 2);
   const dialog = document.querySelector(".lightbox");
   const viewerImage = dialog.querySelector("img");
   const closeButton = dialog.querySelector("[data-close]");
@@ -86,7 +96,9 @@
   function validCrop(crop) {
     if (!crop || !Number.isInteger(crop.x) || !Number.isInteger(crop.y) || !Number.isInteger(crop.zoom)) return null;
     return crop.x >= 0 && crop.x <= 100 && crop.y >= 0 && crop.y <= 100 && crop.zoom >= 100 && crop.zoom <= 300
-      ? { x: crop.x, y: crop.y, zoom: crop.zoom } : null;
+      ? { x: crop.x, y: crop.y, zoom: crop.zoom,
+        rotation: Number.isInteger(crop.rotation) && Math.abs(crop.rotation) <= 180 ? crop.rotation : 0,
+        flipX: crop.flipX === true, flipY: crop.flipY === true } : null;
   }
 
   function applyCoverCrop(cover, collection, file) {
@@ -96,6 +108,8 @@
       cover.classList.add("has-crop-" + format);
       cover.style.setProperty("--" + format + "-crop-position", crop.x + "% " + crop.y + "%");
       cover.style.setProperty("--" + format + "-crop-zoom", crop.zoom / 100);
+      cover.style.setProperty("--" + format + "-crop-rotation", crop.rotation + "deg");
+      cover.style.setProperty("--" + format + "-crop-flip", (crop.flipX ? -1 : 1) + ", " + (crop.flipY ? -1 : 1));
     }
   }
 
@@ -105,9 +119,9 @@
     const next = [];
     for (const entry of input) {
       if (!entry || typeof entry.id !== "string" || seen.has(entry.id) || entry.id === "designs" ||
-        typeof entry.title !== "string" || !entry.title.trim() || typeof entry.summary !== "string") return false;
+        typeof entry.title !== "string" || !entry.title.trim() || typeof entry.summary !== "string") continue;
       const standard = Object.hasOwn(standardGalleries, "/" + entry.id);
-      if (!standard && (!customCover.test(entry.id) || typeof entry.category !== "string" || !entry.category.trim())) return false;
+      if (!standard && (!customCover.test(entry.id) || typeof entry.category !== "string" || !entry.category.trim())) continue;
       seen.add(entry.id);
       next.push({
         id: entry.id, title: entry.title, summary: entry.summary,
@@ -124,6 +138,7 @@
         discStyle: discStyles.includes(entry.discStyle) ? entry.discStyle : "silver",
         category: standard ? "" : entry.category,
         ...Object.fromEntries(coverColors.map(key => [key, typeof entry[key] === "string" && color.test(entry[key]) ? entry[key] : ""])),
+        ...options?.cover(entry),
       });
     }
     if (JSON.stringify(next) === JSON.stringify(covers)) return false;
@@ -139,8 +154,12 @@
         }),
         ...cover,
       };
+      if (cover.linkedCategory || cover.linkedDesignIds?.length) {
+        const selected = new Set(cover.linkedDesignIds);
+        galleries[route].accepts = item => selected.has(designKey(item)) || item.categoria === cover.linkedCategory;
+      }
     }
-    libraryRoutes = covers.map(cover => "/" + cover.id);
+    libraryRoutes = covers.filter(cover => cover.visible !== false).map(cover => "/" + cover.id);
     return true;
   }
 
@@ -154,6 +173,8 @@
   let requestedRoute;
   let transitioning = false;
   let coverPosition = 1;
+  const defaultCover = libraryRoutes.findIndex(route => galleries[route].defaultSelected);
+  if (defaultCover >= 0) coverPosition = defaultCover;
   let handleHomeKeys;
   let syncHomeMotion;
   let stopCoverLoading;
@@ -170,16 +191,32 @@
   let viewerItems = [];
   let viewerPosition = 0;
   let opener;
+  let lockedScroll = null;
+  let neighborTimer;
+  const iosTouch = /Apple/i.test(navigator.vendor) && navigator.maxTouchPoints > 0;
 
   const imagePath = design => liveAssetBase + encodeURIComponent(design.arquivo);
   const designKey = design => design.id || design.arquivo;
   const thumbnail = design => {
     const info = design.thumb ? [design.thumb, design.width, design.height] : window.HF_THUMBNAILS?.[design.arquivo];
-    return info ? { src: liveAssetBase + "thumbs/" + encodeURIComponent(info[0]), width: info[1], height: info[2] }
-      : { src: imagePath(design) };
+    const variants = Array.isArray(info?.[3]) && info[3].every(pair => Array.isArray(pair) &&
+      typeof pair[0] === "string" && imageFile.test(pair[0]) && Number.isInteger(pair[1]) && pair[1] > 0) ? info[3] : [];
+    const base = liveAssetBase + "thumbs/";
+    return {
+      src: info?.[0] ? base + encodeURIComponent(info[0]) : imagePath(design),
+      width: info?.[1] || design.width, height: info?.[2] || design.height,
+      srcset: variants ? variants.map(([file,width]) => base + encodeURIComponent(file) + " " + width + "w").join(", ") : "",
+      color: design.dominantColor || (color.test(info?.[4] || "") ? info[4] : ""),
+    };
   };
   const designFromHash = () => new URLSearchParams(location.hash.split("?")[1]).get("design");
-  const routeLink = (route, design) => "#" + route + (design ? "?design=" + encodeURIComponent(designKey(design)) : "");
+  const hashParams = () => new URLSearchParams(location.hash.split("?")[1]);
+  const routeLink = (route, design, year = route === getRoute() ? hashParams().get("ano") : null) => {
+    const query = new URLSearchParams();
+    if (design) query.set("design", designKey(design));
+    if (year && year !== "all") query.set("ano", year);
+    return "#" + route + (query.size ? "?" + query : "");
+  };
   function remembered(key) {
     try { return localStorage.getItem(key); } catch { return null; }
   }
@@ -189,7 +226,20 @@
   async function copyLink(hash, status, button) {
     const url = new URL(hash, location.href).href;
     try {
-      await navigator.clipboard.writeText(url);
+      try { await navigator.clipboard.writeText(url); }
+      catch {
+        const field = document.createElement("textarea");
+        field.value = url;
+        field.setAttribute("aria-label", "Link da obra");
+        field.style.position = "fixed";
+        dialog.append(field);
+        field.select();
+        const copied = document.execCommand("copy");
+        field.remove();
+        button.focus({ preventScroll: true });
+        if (!copied) throw new Error("Área de transferência indisponível");
+      }
+      audio.cue("copy");
       status.textContent = "Link copiado.";
       const original = button.dataset.originalLabel || button.textContent;
       button.dataset.originalLabel = original;
@@ -200,33 +250,24 @@
       window.prompt("Copie este link", url);
     }
   }
-  let analyticsStarted = false;
-  let analyticsReady = false;
-  const queuedGalleryViews = [];
+  let analyticsEndpoint;
+  function count(path, title, event) {
+    if (!analyticsEndpoint || navigator.webdriver || navigator.doNotTrack === "1") return;
+    const query = new URLSearchParams({ p: path, t: title, rnd: String(Date.now()) });
+    if (event) query.set("e","1");
+    else if (document.referrer) query.set("r",document.referrer);
+    fetch(analyticsEndpoint + "?" + query, { mode: "no-cors", credentials: "omit", keepalive: true }).catch(() => {});
+  }
   function trackGallery(path, title) {
-    if (window.top !== window.self || location.origin !== "https://theonlyhf.github.io") return;
-    const entry = { path: "/hf-designs/galeria" + path, title, event: true };
-    if (analyticsReady) window.goatcounter.count(entry);
-    else if (queuedGalleryViews.length < 50) queuedGalleryViews.push(entry);
+    count("hf-designs/galeria" + path, title, true);
   }
 
   function startAnalytics(code) {
-    if (analyticsStarted || window.top !== window.self || location.origin !== "https://theonlyhf.github.io" ||
+    if (analyticsEndpoint || window.top !== window.self || location.origin !== "https://theonlyhf.github.io" ||
       !["/hf-designs/", "/hf-designs/index.html"].includes(location.pathname) ||
       !/^[a-z0-9][a-z0-9-]{0,59}$/.test(code ?? "")) return;
-    analyticsStarted = true;
-    window.goatcounter = { no_onload: true };
-    const script = document.createElement("script");
-    script.src = "https://gc.zgo.at/count.js";
-    script.async = true;
-    script.dataset.goatcounter = "https://" + code + ".goatcounter.com/count";
-    script.addEventListener("load", () => {
-      if (typeof window.goatcounter.count !== "function") return;
-      analyticsReady = true;
-      window.goatcounter.count({ path: "/hf-designs/", title: "HF Designs" });
-      queuedGalleryViews.splice(0).forEach(entry => window.goatcounter.count(entry));
-    });
-    document.head.append(script);
+    analyticsEndpoint = "https://" + code + ".goatcounter.com/count";
+    count("/hf-designs/", "HF Designs", false);
   }
   function httpsLink(value, fallback) {
     try {
@@ -305,6 +346,7 @@
           : {},
       };
       startAnalytics(settings.analyticsCode);
+      audio.configure?.(options?.audio(settings.audio), soundUrl);
       syncContactLinks(main);
       const currentChannel = main.querySelector(".channel-page a");
       if (currentChannel) currentChannel.href = home.youtube;
@@ -333,7 +375,7 @@
     const fallback = gallery ? "gallery" : "home";
     const key = path.slice(1) || "home";
     const file = (Object.hasOwn(home.sounds, key) && home.sounds[key]) || (gallery && home.sounds.gallery);
-    window.hfAudio.setScene(fallback, soundUrl(file));
+    audio.setScene(fallback, soundUrl(file), gallery ? "cover:" + key : path === "/contato" ? "contact" : "home");
   }
   function soundUrl(file) {
     return file ? new URL("../sounds/" + encodeURIComponent(file), new URL(liveAssetBase, document.baseURI)).href : "";
@@ -360,6 +402,7 @@
 
   const zoomSurface = viewerImage.parentElement;
   const pointers = new Map();
+  let viewerGesture, lastTap;
   let zoom = 1, panX = 0, panY = 0;
   function updateZoom() {
     const bound = (value, limit) => Math.max(-limit, Math.min(limit, value));
@@ -375,7 +418,9 @@
   }
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   zoomSurface.addEventListener("pointerdown", event => {
+    if (event.target.closest("button")) return;
     if (event.pointerType === "mouse" && zoom === 1) return;
+    viewerGesture = pointers.size ? null : { id:event.pointerId, x:event.clientX, y:event.clientY, at:performance.now() };
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     zoomSurface.setPointerCapture(event.pointerId);
   });
@@ -392,15 +437,64 @@
     pointers.set(event.pointerId, current);
     updateZoom();
   });
+  zoomSurface.addEventListener("pointerup", event => {
+    if (viewerGesture?.id !== event.pointerId) return;
+    const { x, y, at } = viewerGesture;
+    viewerGesture = null;
+    const dx = event.clientX-x, dy = event.clientY-y;
+    if (zoom === 1 && dy > 68 && dy > Math.abs(dx)*1.2) dialog.close();
+    else if (zoom === 1 && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.2 && viewerItems.length > 1)
+      showViewerItem(viewerPosition-Math.sign(dx));
+    else if (Math.hypot(dx,dy) < 12 && performance.now()-at < 350) {
+      if (lastTap && at-lastTap.at < 340 && Math.hypot(lastTap.x-x,lastTap.y-y) < 30) {
+        if (zoom > 1) resetZoom();
+        else { zoom = 2.2; updateZoom(); }
+        lastTap = null;
+      } else lastTap = { x, y, at };
+    }
+  });
   for (const name of ["pointerup", "pointercancel", "lostpointercapture"])
     zoomSurface.addEventListener(name, event => pointers.delete(event.pointerId));
+  zoomSurface.addEventListener("dblclick", () => { zoom = zoom === 1 ? 2.2 : 1; updateZoom(); });
+  zoomSurface.addEventListener("wheel", event => {
+    if (event.ctrlKey) return;
+    event.preventDefault();
+    zoom = Math.max(1,Math.min(5,zoom - Math.sign(event.deltaY)*.22));
+    updateZoom();
+  }, {passive:false});
   viewerImage.draggable = false;
   dialog.querySelector("[data-copy]").addEventListener("click", event =>
     copyLink(routeLink(activeRoute, viewerItems[viewerPosition]), dialog.querySelector("[data-link-status]"), event.currentTarget));
 
+  const viewerLoad = dialog.querySelector(".viewer-load");
+  const viewerRetry = dialog.querySelector("[data-retry]");
+  function setViewerImage(source) {
+    viewerLoad.hidden = false;
+    viewerRetry.hidden = true;
+    viewerImage.src = source;
+  }
+  viewerImage.addEventListener("load", () => { viewerLoad.hidden = true; });
+  viewerImage.addEventListener("error", () => {
+    viewerLoad.hidden = true;
+    viewerRetry.hidden = !dialog.open;
+  });
+  viewerRetry.addEventListener("click", () => {
+    if (viewerItems[viewerPosition]) setViewerImage(imagePath(viewerItems[viewerPosition]));
+  });
+  const share = dialog.querySelector("[data-share]");
+  share.hidden = typeof navigator.share !== "function";
+  share.addEventListener("click", async () => {
+    const item = viewerItems[viewerPosition];
+    if (!item) return;
+    try { await navigator.share({ title: item.titulo, url: new URL(routeLink(activeRoute, item), location.href).href }); }
+    catch (error) { if (error.name !== "AbortError") dialog.querySelector("[data-link-status]").textContent = "Não foi possível compartilhar."; }
+  });
+
   function showViewerItem(position, preserveZoom = false) {
     viewerPosition = (position + viewerItems.length) % viewerItems.length;
     const design = viewerItems[viewerPosition];
+    if (design.dominantColor) zoomSurface.style.setProperty("--viewer-placeholder", design.dominantColor);
+    else zoomSurface.style.removeProperty("--viewer-placeholder");
     viewerTitle.textContent = design.titulo;
     viewerDetails.textContent = design.categoria + " · " + yearLabel(design);
     viewerDescription.textContent = typeof design.descricao === "string" ? design.descricao.trim() : "";
@@ -413,10 +507,18 @@
     }
     if (!preserveZoom) resetZoom();
     viewerIndex.textContent = indexLabel(viewerPosition, viewerItems.length);
-    viewerImage.alt = design.titulo + " — " + design.categoria;
-    if (viewerImage.getAttribute("src") !== imagePath(design)) viewerImage.src = imagePath(design);
+    viewerImage.alt = design.altText || design.titulo + " — " + design.categoria;
+    if (viewerImage.getAttribute("src") !== imagePath(design)) setViewerImage(imagePath(design));
     previousButton.disabled = nextButton.disabled = viewerItems.length < 2;
-    if (dialog.open && activeRoute === getRoute()) history.replaceState(null, "", routeLink(activeRoute, design));
+    clearTimeout(neighborTimer);
+    if (viewerItems.length > 1 && !navigator.connection?.saveData && !matchMedia("(pointer: coarse)").matches) {
+      neighborTimer = setTimeout(() => {
+        if (!dialog.open) return;
+        const next = viewerItems[(viewerPosition + 1) % viewerItems.length];
+        if (next) { const image = new Image(); image.fetchPriority = "low"; image.src = imagePath(next); }
+      },500);
+    }
+    if (dialog.open && activeRoute === getRoute()) history.replaceState(history.state, "", routeLink(activeRoute, design));
   }
 
   function expandViewer(expanded) {
@@ -431,7 +533,16 @@
     viewerItems = [...items];
     opener = trigger;
     previousButton.disabled = nextButton.disabled = items.length < 2;
-    if (!dialog.open) dialog.showModal();
+    if (!dialog.open) {
+      if (!designFromHash()) history.pushState({ hfViewer: true }, "", routeLink(activeRoute, items[position]));
+      dialog.showModal();
+      audio.overlay?.(true);
+      if (iosTouch) {
+        lockedScroll = window.scrollY;
+        document.body.style.setProperty("--locked-scroll", -lockedScroll + "px");
+        document.body.classList.add("ios-dialog-lock");
+      }
+    }
     showViewerItem(position);
     document.body.classList.add("has-lightbox");
   }
@@ -443,7 +554,18 @@
     // Um fechamento disparado pela troca de rota pode chegar após outra abertura.
     if (dialog.open) return;
     document.body.classList.remove("has-lightbox");
-    if (activeRoute === getRoute() && designFromHash()) history.replaceState(null, "", routeLink(activeRoute));
+    clearTimeout(neighborTimer);
+    if (lockedScroll !== null) {
+      document.body.classList.remove("ios-dialog-lock");
+      document.body.style.removeProperty("--locked-scroll");
+      window.scrollTo(0,lockedScroll);
+      lockedScroll = null;
+    }
+    if (activeRoute === getRoute() && designFromHash()) {
+      if (history.state?.hfViewer && !transitioning) history.back();
+      else history.replaceState(null, "", routeLink(activeRoute));
+    }
+    audio.overlay?.(false);
     viewerImage.removeAttribute("src");
     expandViewer(false);
     if (opener?.isConnected) opener.focus({ preventScroll: true });
@@ -454,6 +576,11 @@
     if (event.target === dialog) dialog.close();
   });
   dialog.addEventListener("keydown", event => {
+    if (["+", "=", "-"].includes(event.key)) {
+      event.preventDefault();
+      zoom = Math.max(1,Math.min(5,zoom + (event.key === "-" ? -.25 : .25)));
+      updateZoom();
+    }
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -479,6 +606,46 @@
       }
     }
   });
+
+  function applyCaseOptions(cover, disc, collection) {
+    if (collection.caseType) cover.dataset.caseType = collection.caseType;
+    if (collection.texture?.kind) cover.dataset.texture = collection.texture.kind;
+    if (collection.motion?.hover) cover.dataset.hover = collection.motion.hover;
+    if (collection.featured) cover.dataset.featured = "true";
+    const set = (name, value, unit = "") => {
+      if (value !== undefined && value !== null && value !== "") cover.style.setProperty("--" + name, value + unit);
+    };
+    const frame = collection.frameOptions;
+    set("custom-frame-color", frame?.color);
+    set("custom-frame-width", frame?.width, "px");
+    set("custom-frame-radius", frame?.radius, "px");
+    set("custom-texture-opacity", collection.texture?.intensity);
+    set("custom-gloss", collection.gloss?.intensity);
+    set("custom-gloss-angle", collection.gloss?.angle, "deg");
+    const shadow = collection.shadow;
+    if (shadow && (shadow.color || shadow.opacity !== null || shadow.blur !== null || shadow.offsetY !== null)) {
+      const hex = shadow.color || "#000000";
+      const alpha = Math.round(255 * (shadow.opacity ?? .55)).toString(16).padStart(2,"0");
+      set("custom-shadow", `0 ${shadow.offsetY ?? 8}px ${shadow.blur ?? 18}px ${hex}${alpha}`);
+    }
+    const spine = cover.querySelector(".cover-spine");
+    if (collection.spine?.text) spine.querySelector(".spine-brand").textContent = collection.spine.text;
+    if (collection.spine?.art) cover.dataset.spineSource = imagePath({ arquivo: collection.spine.art });
+    set("custom-spine-color", collection.spine?.color);
+    const discOptions = collection.disc;
+    set("custom-disc-hole", discOptions?.holeRatio == null ? null : discOptions.holeRatio * 100, "%");
+    set("custom-disc-tint", discOptions?.tint);
+    set("custom-disc-gloss", discOptions?.gloss);
+    if (discOptions?.spin) {
+      if (discOptions.spin.onHover) disc.dataset.spinHover = "true";
+      if (discOptions.spin.onSelect) disc.dataset.spinSelect = "true";
+      set("custom-spin-time", 60 / discOptions.spin.rpm, "s");
+      set("custom-spin-direction", discOptions.spin.direction);
+    }
+    set("custom-motion-time", collection.motion?.durationMs, "ms");
+    set("custom-motion-distance", collection.motion?.intensity == null ? null : collection.motion.intensity * 12, "px");
+    if (collection.collection) cover.dataset.collectionTitle = collection.collection;
+  }
 
   function renderHome(page) {
     const flow = page.querySelector(".coverflow");
@@ -531,9 +698,10 @@
         button.addEventListener("click", () => {
           appearance[key] = button.dataset[key];
           applyAppearance(flow);
+          updateCoverNames();
           updateSelection();
           if (key === "style") closeOptions(true);
-          window.hfAudio.cue("select");
+          audio.cue("select");
           try {
             localStorage.setItem("hf-cover-" + key, appearance[key]);
           } catch {
@@ -565,6 +733,7 @@
       applyCoverCrop(cover, collection, artwork?.arquivo);
       cover.dataset.frame = collection.frameStyle;
       disc.dataset.disc = collection.discStyle;
+      applyCaseOptions(cover, disc, collection);
       cover.classList.toggle("cover-channel", Boolean(collection.channel));
       for (const key of coverColors) {
         if (!collection[key]) continue;
@@ -575,29 +744,35 @@
         cover.classList.add("has-cover-frame");
         cover.dataset.frameSource = thumbnail({ arquivo: collection.frame }).src;
       }
-      trigger.setAttribute("aria-label", "Abrir caixa: " + collection.title);
       disc.id = "disc-" + cover.dataset.collection;
       disc.href = "#" + route;
       disc.setAttribute("aria-label", "Abrir galeria: " + collection.title);
       trigger.setAttribute("aria-controls", disc.id);
       cover.querySelector(".cover-art strong").textContent = collection.title;
-      cover.querySelector(".disc-title").textContent = collection.title;
+      cover.querySelector(".disc-title").textContent = collection.disc?.labelText || collection.title;
       cover.querySelector(".case-back strong").textContent = collection.title;
       const summary = cover.querySelector(".case-summary");
+      const backCopy = summary.parentElement;
+      backCopy.inert = true;
+      backCopy.tabIndex = -1;
+      backCopy.setAttribute("role", "group");
+      backCopy.setAttribute("aria-label", "Verso de " + collection.title);
       summary.id = "summary-" + cover.dataset.collection;
       summary.textContent = collection.summary;
       trigger.setAttribute("aria-describedby", summary.id);
 
       for (const image of cover.querySelectorAll(".cover-art img, .case-back-art")) {
-        if (artwork) image.dataset.source = thumbnail(artwork).src;
+        if (image.classList.contains("case-back-art") && collection.backArt) image.dataset.source = imagePath({ arquivo: collection.backArt });
+        else if (artwork) image.dataset.source = thumbnail(artwork).src;
         else image.remove();
       }
-      if (collection.discStyle === "print" && artwork) {
+      if (collection.disc?.art || collection.discStyle === "print" && artwork) {
         const print = disc.querySelector(".disc-art");
-        print.dataset.source = thumbnail(artwork).src;
+        print.dataset.source = collection.disc?.art ? imagePath({ arquivo: collection.disc.art }) : thumbnail(artwork).src;
+        print.classList.toggle("custom-disc-art", Boolean(collection.disc?.art));
         print.hidden = false;
       }
-      return { cover, trigger, disc, lid: cover.querySelector(".case-lid"), model: cover.querySelector(".case-model") };
+      return { cover, trigger, disc, collection, lid: cover.querySelector(".case-lid"), model: cover.querySelector(".case-model") };
     });
 
     let opened;
@@ -607,6 +782,13 @@
     let lastWheel = 0;
     let nextWheelStep = 0;
     let coverFade;
+    function updateCoverNames() {
+      for (const {trigger, collection} of entries) {
+        const printed = trigger.innerText.replace(/\s+/g," ").trim();
+        const title = printed.toLocaleLowerCase("pt-BR").includes(collection.title.toLocaleLowerCase("pt-BR")) ? "" : collection.title;
+        trigger.setAttribute("aria-label","Abrir caixa: " + [printed,title,collection.altText].filter(Boolean).join(" · "));
+      }
+    }
 
     syncHomeMotion = () => {
       flow.classList.toggle("has-full-motion", fullCoverMotion);
@@ -639,6 +821,9 @@
       entry.turn?.cancel();
       entry.flip?.cancel();
       cover.classList.toggle("is-back-facing", show);
+      const backCopy = cover.querySelector(".case-back-copy");
+      backCopy.inert = !show;
+      backCopy.tabIndex = show ? 0 : -1;
       if (show) model.style.setProperty("--case-yaw", target + "deg");
       else model.style.removeProperty("--case-yaw");
       backToggle.setAttribute("aria-pressed", String(show));
@@ -649,14 +834,14 @@
       if (animate && motionAllowed()) {
         const delta = ((target - from + 540) % 360) - 180;
         entry.flip = model.animate([{ "--case-yaw": from + "deg" }, { "--case-yaw": (from + delta) + "deg" }], {
-          duration: 720,
+          duration: entry.collection.motion?.durationMs ?? 720,
           easing: "cubic-bezier(.33,.08,.2,1)",
         });
       }
     }
 
     function motionAllowed() {
-      return !reducedMotion.matches || fullCoverMotion;
+      return !simpleMode && (!reducedMotion.matches || fullCoverMotion);
     }
 
     function rotationAngle({ model }) {
@@ -667,6 +852,7 @@
     function turnUnderPointer(entry) {
       if (!motionAllowed() || opened || (dragged && gesture) ||
         entry.flip?.playState === "running" || entry.cover.matches(".is-back-facing, .is-closing")) return;
+      if (entry.collection.motion?.hover) return;
       const from = rotationAngle(entry);
       entry.turn?.cancel();
       entry.turn = entry.model.animate([{ "--case-yaw": from + "deg" }, { "--case-yaw": (from + 360) + "deg" }], {
@@ -690,7 +876,7 @@
       const show = backToggle.getAttribute("aria-pressed") === "false";
       showBack(show, true);
       fadeReducedMotion();
-      window.hfAudio.cue("select");
+      audio.cue(entries[coverPosition]?.collection.sound?.flip || "select", "select");
     });
 
     function fadeReducedMotion() {
@@ -717,6 +903,10 @@
         cover.style.setProperty("--cover-frame-image", 'url("' + cover.dataset.frameSource + '")');
         delete cover.dataset.frameSource;
       }
+      if (cover.dataset.spineSource) {
+        cover.style.setProperty("--custom-spine-image", 'url("' + cover.dataset.spineSource + '")');
+        delete cover.dataset.spineSource;
+      }
     }
 
     function centerCover(position, playSound = true) {
@@ -724,10 +914,12 @@
       if (nextPosition !== coverPosition) {
         showBack(false);
         fadeReducedMotion();
-        if (playSound) window.hfAudio.cue("hover");
+        if (playSound) audio.cue("move", "hover");
       }
       coverPosition = nextPosition;
-      entries.forEach(({ cover }, index) => {
+      const selected = galleries[libraryRoutes[coverPosition]];
+      flow.querySelector("[data-cover-status]").textContent = selected.collection ? selected.title + " · " + selected.collection : selected.title;
+      entries.forEach(({ cover, trigger }, index) => {
         const distance = index - coverPosition;
         const side = Math.sign(distance);
         const offset = side * (1 + Math.max(0, Math.abs(distance) - 1) * .61);
@@ -736,6 +928,7 @@
         cover.style.setProperty("--layer", entries.length - Math.abs(distance));
         cover.style.setProperty("--label-alignment", side < 0 ? "left" : "right");
         cover.classList.toggle("is-centered", distance === 0);
+        trigger.tabIndex = distance === 0 && !opened ? 0 : -1;
         cover.classList.toggle("is-distant", Math.abs(distance) > 1);
       });
       // A capa em foco é solicitada antes das vizinhas.
@@ -752,6 +945,7 @@
       opened = null;
       cover.classList.add("is-closing");
       cover.classList.remove("is-open", "is-disc-ready");
+      audio.cue("close", "");
       flow.classList.remove("has-open-case");
       close.hidden = true;
       hint.hidden = Boolean(remembered("hf-gesture-hint"));
@@ -759,7 +953,7 @@
       trigger.setAttribute("aria-expanded", "false");
       disc.setAttribute("aria-hidden", "true");
       disc.tabIndex = -1;
-      entries.forEach(entry => { entry.trigger.tabIndex = 0; });
+      entries.forEach((entry, index) => { entry.trigger.tabIndex = index === coverPosition ? 0 : -1; });
       if (restoreFocus) trigger.focus({ preventScroll: true });
       const closing = {};
       entry.closing = closing;
@@ -777,6 +971,11 @@
       centerCover(index, false);
       const entry = entries[index];
       const { cover, trigger, disc, lid, model } = entry;
+      if (entry.collection.motion?.flipOnSelect && !cover.classList.contains("is-back-facing")) {
+        showBack(true, true);
+        audio.cue(entry.collection.sound?.flip || "flip", "select");
+        return;
+      }
       const from = rotationAngle(entry);
       entry.turn?.cancel();
       entry.flip?.cancel();
@@ -790,7 +989,7 @@
       flow.classList.add("has-open-case");
       close.hidden = false;
       hint.hidden = true;
-      window.hfAudio.cue("select");
+      audio.cue(entry.collection.sound?.select || "open", "select");
       fadeReducedMotion();
       entries.forEach(entry => { entry.trigger.tabIndex = -1; });
       trigger.setAttribute("aria-expanded", "true");
@@ -806,6 +1005,7 @@
 
     centerCover(coverPosition);
     flow.append(...entries.map(entry => entry.cover));
+    queueMicrotask(() => { if (flow.isConnected) updateCoverNames(); });
     if ("IntersectionObserver" in window) {
       const observer = new IntersectionObserver(changes => {
         for (const change of changes) {
@@ -821,7 +1021,7 @@
       entry.cover.addEventListener("pointerenter", event => {
         if (event.pointerType === "touch" || opened || (dragged && gesture)) return;
         entry.hovered = true;
-        window.hfAudio.cue("hover");
+        audio.cue(entry.collection.sound?.hover || "hover", "hover");
         turnUnderPointer(entry);
       });
       entry.cover.addEventListener("pointerleave", () => {
@@ -848,10 +1048,13 @@
         closeCase();
         return;
       }
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (!["ArrowLeft","ArrowRight","Home","End","PageUp","PageDown"].includes(event.key)) return;
+      if (event.target.closest?.("input,textarea,select,[contenteditable]")) return;
       event.preventDefault();
       closeCase(false);
-      centerCover(coverPosition + (event.key === "ArrowLeft" ? -1 : 1));
+      const index = { Home: 0, End: entries.length - 1, PageUp: coverPosition - 3, PageDown: coverPosition + 3,
+        ArrowLeft: coverPosition - 1, ArrowRight: coverPosition + 1 }[event.key];
+      centerCover(index);
       entries[coverPosition].trigger.focus({ preventScroll: true });
     };
 
@@ -879,7 +1082,7 @@
     flow.addEventListener("pointerdown", event => {
       if (opened || event.target.closest(".case-controls, .gesture-hint") || !event.isPrimary || event.button !== 0) return;
       dragged = false;
-      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, limit: flow.clientWidth * .27 };
+      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, at: performance.now(), limit: flow.clientWidth * .27 };
     });
     flow.addEventListener("pointermove", event => {
       if (gesture?.id !== event.pointerId) return;
@@ -910,8 +1113,9 @@
       if (gesture?.id !== event.pointerId) return;
       const x = event.clientX - gesture.x;
       const y = event.clientY - gesture.y;
+      const velocity = Math.abs(x) / Math.max(1, performance.now() - gesture.at);
       resetGesture(event);
-      if (Math.abs(x) < 36 || Math.abs(x) <= Math.abs(y)) return;
+      if (Math.abs(x) < (velocity > .6 ? 20 : 36) || Math.abs(x) <= Math.abs(y)) return;
       dragged = true;
       centerCover(coverPosition - Math.sign(x));
     });
@@ -927,7 +1131,7 @@
       const disc = event.target.closest(".disc-link");
       if (disc) {
         if (!disc.closest(".is-disc-ready")) event.preventDefault();
-        else window.hfAudio.cue("select");
+        else audio.cue("select");
         return;
       }
       if (opened) {
@@ -974,15 +1178,26 @@
 
     const image = button.querySelector("img");
     button.dataset.designKey = designKey(design);
-    image.alt = design.titulo + " — " + design.categoria;
+    image.alt = design.altText || design.titulo + " — " + design.categoria;
     const preview = thumbnail(design);
     if (preview.width > 0 && preview.height > 0) {
       image.width = preview.width;
       image.height = preview.height;
       image.style.aspectRatio = "auto " + preview.width + " / " + preview.height;
     }
+    if (preview.srcset) {
+      image.sizes = "(max-width: 475px) 84vw, (max-width: 940px) 42vw, 260px";
+      image.srcset = preview.srcset;
+    }
     image.src = preview.src;
-    image.addEventListener("error", () => { image.dataset.failed = ""; }, { once: true });
+    if (preview.color) image.parentElement.style.backgroundColor = preview.color;
+    image.addEventListener("error", () => {
+      if (image.hasAttribute("srcset") || image.getAttribute("src") !== imagePath(design)) {
+        image.removeAttribute("srcset");
+        image.src = imagePath(design);
+      }
+      else image.dataset.failed = "";
+    });
     button.querySelector("strong").textContent = design.titulo;
     const [metadata, number] = button.querySelector(".card-meta").children;
     metadata.textContent = design.categoria.replace(/^Banner · /, "") + " · " + yearLabel(design);
@@ -1020,12 +1235,14 @@
     function selectYear(year, button) {
       if (year === currentYear) return;
       currentYear = year;
+      history.replaceState(history.state, "", routeLink(activeRoute, null, year));
+      gallery.dataset.year = year;
       filters.querySelector('[aria-pressed="true"]').setAttribute("aria-pressed", "false");
       button.setAttribute("aria-pressed", "true");
       clearTimeout(timer);
       gallery.classList.remove("is-entering");
 
-      if (reducedMotion.matches) {
+      if (reducedMotion.matches || simpleMode) {
         gallery.classList.remove("is-exiting");
         showItems(year);
         return;
@@ -1060,6 +1277,7 @@
       buttons[(target + buttons.length) % buttons.length].focus();
     });
 
+    gallery.dataset.year = currentYear;
     showItems(currentYear);
   }
 
@@ -1138,12 +1356,13 @@
     if (gallery?.channel) {
       page.querySelector("h1").textContent = gallery.title;
       page.querySelector(".channel-page p").textContent = gallery.summary;
-      if (gallery.art) page.querySelector(".channel-page img").src = thumbnail(resolveCoverArt({ ...gallery, artMode: "" })).src;
+      const channelArt = resolveCoverArt({ ...gallery, artMode: "" }) || { arquivo: "hf-banner-youtube.png" };
+      page.querySelector(".channel-page img").src = thumbnail(channelArt).src;
       const link = page.querySelector(".channel-page a");
       link.href = home.youtube || gallery.url;
       link.hidden = false;
       page.querySelector(".eject-button").addEventListener("click", ejectGallery);
-    } else if (gallery) renderGallery(page, gallery);
+    } else if (gallery) renderGallery(page, gallery, Number(hashParams().get("ano")));
     if (path === "/contato") syncContactLinks(page);
     if (path === "/") renderHome(page);
 
@@ -1161,6 +1380,15 @@
 
     const pageName = gallery?.title ?? "Contato";
     document.title = path === "/" ? "HF Designs — Portfólio de design" : pageName + " — HF Designs";
+    const description = gallery?.summary || (path === "/" ?
+      "Portfólio HF Designs. Pôsteres, estampas, identidades visuais e banners para YouTube e Twitch." :
+      "Explore " + pageName + " no portfólio HF Designs.");
+    document.querySelector('meta[name="description"]').content = description;
+    document.querySelector('meta[property="og:title"]').content = document.title;
+    document.querySelector('meta[property="og:description"]').content = description;
+    const canonical = "https://theonlyhf.github.io/hf-designs/" + (path === "/" ? "" : "#" + path);
+    document.querySelector('link[rel="canonical"]').href = canonical;
+    document.querySelector('meta[property="og:url"]').content = canonical;
     if (moveFocus) {
       screen.scrollTop = 0;
       main.querySelector("h1").focus({ preventScroll: true });
@@ -1174,8 +1402,8 @@
     const departure = location.hash;
     const previousCover = activeRoute;
     if (dialog.open) dialog.close();
-    window.hfAudio.setScene(null);
-    window.hfAudio.cue("eject");
+    audio.setScene(null);
+    audio.cue("eject");
     ejectOverlay.querySelector(".eject-disc").dataset.disc = galleries[activeRoute]?.discStyle ?? "silver";
     screen.inert = true;
     ejectOverlay.hidden = false;
@@ -1214,9 +1442,9 @@
     if (dialog.open) dialog.close();
 
     try {
-      await window.hfTransition(() => {
+      await (window.hfTransition || (swap => swap()))(() => {
         if (requestedRoute !== activeRoute) renderRoute(requestedRoute, true);
-      });
+      }, simpleMode);
     } finally {
       transitioning = false;
       refreshLiveGallery();
@@ -1250,47 +1478,100 @@
     });
   }
 
-  const rigLayout = new ResizeObserver(drawCables);
-  rigLayout.observe(rig);
-  rigLayout.observe(rig.querySelector(".monitor"));
-  rigLayout.observe(rig.querySelector(".console"));
+  if ("ResizeObserver" in window) {
+    const rigLayout = new ResizeObserver(drawCables);
+    rigLayout.observe(rig);
+    rigLayout.observe(rig.querySelector(".monitor"));
+    rigLayout.observe(rig.querySelector(".console"));
+  } else window.addEventListener("resize", drawCables, { passive: true });
 
+  let bootTicket = 0;
+  function finishPower(moveFocus = true) {
+    if (bootComplete) return;
+    bootTicket++;
+    audio.finishBoot();
+    intro.hidden = true;
+    screen.inert = false;
+    screen.removeAttribute("aria-hidden");
+    skipBoot.hidden = true;
+    simpleButton.hidden = false;
+    sound.hidden = audio === silentAudio;
+    rig.querySelector(".console-volume").hidden = audio === silentAudio;
+    power.disabled = false;
+    rig.classList.add("is-powered");
+    try { sessionStorage.setItem("hf-console-booted", "yes"); } catch {}
+    powerLabel.textContent = "Desligar console";
+    bootComplete = true;
+    renderRoute(getRoute(), moveFocus);
+  }
   power.addEventListener("click", async event => {
+    if (bootComplete) {
+      if (transitioning || dialog.open) return;
+      audio.cue("powerOff");
+      audio.setScene(null);
+      bootComplete = false;
+      screen.inert = true;
+      screen.setAttribute("aria-hidden", "true");
+      rig.classList.remove("is-powered");
+      stopCoverLoading?.();
+      main.replaceChildren();
+      skipBoot.hidden = false;
+      sound.hidden = simpleButton.hidden = rig.querySelector(".console-volume").hidden = true;
+      try { sessionStorage.removeItem("hf-console-booted"); } catch {}
+      powerLabel.textContent = "Ligar console";
+      return;
+    }
+    const ticket = ++bootTicket;
     power.disabled = true;
     powerLabel.textContent = "Iniciando…";
     rig.classList.add("is-powered");
-    const brief = getRoute() !== "/" || remembered("hf-console-booted");
-    if (brief || reducedMotion.matches) intro.style.setProperty("--boot-duration", reducedMotion.matches ? ".48s" : "1.25s");
+    const brief = getRoute() !== "/";
+    if (brief || reducedMotion.matches || simpleMode) intro.style.setProperty("--boot-duration", reducedMotion.matches || simpleMode ? ".48s" : "1.25s");
     intro.hidden = false;
-    window.hfAudio.powerOn(brief || reducedMotion.matches ? "pulse" : home.bootPreset,
-      brief || reducedMotion.matches ? "" : soundUrl(home.sounds.boot));
+    audio.powerOn(simpleMode ? "silent" : brief || reducedMotion.matches ? "pulse" : home.bootPreset,
+      brief || reducedMotion.matches ? "" : soundUrl(home.sounds.boot), true);
 
-    const animation = intro.getAnimations().find(motion => ["boot-reveal", "boot-fade"].includes(motion.animationName));
+    const animation = intro.getAnimations?.().find(motion => ["boot-reveal", "boot-fade"].includes(motion.animationName));
     if (animation) await animation.finished.catch(() => {});
 
-    window.hfAudio.finishBoot();
-    intro.hidden = true;
-    screen.inert = false;
-    sound.hidden = false;
-    rig.querySelector(".console-volume").hidden = false;
-    remember("hf-console-booted", "yes");
-    powerLabel.textContent = "Ligado";
-    bootComplete = true;
-    renderRoute(getRoute(), event.detail === 0);
+    if (ticket === bootTicket) finishPower(event.detail === 0);
   });
+  skipBoot.addEventListener("click", () => finishPower());
 
   function showMute(muted) {
     sound.setAttribute("aria-pressed", String(muted));
     sound.setAttribute("aria-label", muted ? "Ativar som" : "Silenciar som");
   }
-  const audioPreferences = window.hfAudio.preferences();
+  function updateSimple() {
+    document.documentElement.classList.toggle("simple-mode", simpleMode);
+    simpleButton.setAttribute("aria-pressed", String(simpleMode));
+    audio.simple?.(simpleMode);
+    syncHomeMotion?.();
+  }
+  simpleButton.addEventListener("click", () => {
+    simpleMode = !simpleMode;
+    remember("hf-simple", simpleMode ? "yes" : "no");
+    updateSimple();
+  });
+  updateSimple();
+  const audioPreferences = audio.preferences();
   showMute(audioPreferences.muted);
   for (const volume of rig.querySelectorAll("[data-volume]")) {
     const key = volume.dataset.volume;
     volume.value = Math.round(audioPreferences[key] * 100);
-    volume.addEventListener("input", () => window.hfAudio.setVolume(key, Number(volume.value) / 100));
+    volume.addEventListener("input", () => audio.setVolume(key, Number(volume.value) / 100));
   }
-  sound.addEventListener("click", () => showMute(window.hfAudio.toggleMute()));
+  sound.addEventListener("click", () => {
+    audio.unlock?.();
+    audio.toggleMute();
+    showMute(audio.preferences().muted);
+  });
+  document.addEventListener("pointerdown", () => {
+    if (bootComplete) audio.unlock?.();
+  }, {passive:true});
+  document.addEventListener("keydown", () => {
+    if (bootComplete) audio.unlock?.();
+  });
 
   document.addEventListener("keydown", event => {
     if (!bootComplete || dialog.open) return;
@@ -1302,16 +1583,65 @@
     handleHomeKeys?.(event);
   });
   reducedMotion.addEventListener("change", () => syncHomeMotion?.());
-  renderRoute(getRoute());
+  let padFrame = 0;
+  let held = new Set();
+  const pads = new Set();
+  const padKey = (key, target = document.activeElement) =>
+    (target?.isConnected ? target : document).dispatchEvent(new KeyboardEvent("keydown", {key,bubbles:true,cancelable:true}));
+  function readPads() {
+    padFrame = 0;
+    if (!pads.size || document.hidden) return;
+    const current = new Set();
+    for (const pad of navigator.getGamepads()) {
+      if (!pad || !pads.has(pad.index)) continue;
+      const active = [
+        [14,pad.axes[0] < -.68,"ArrowLeft"],[15,pad.axes[0] > .68,"ArrowRight"],
+        [0,false,"Enter"],[1,false,"Escape"],[9,false,"Start"],
+      ];
+      for (const [index, axis, key] of active) {
+        if (!axis && !pad.buttons[index]?.pressed) continue;
+        const token = pad.index + ":" + index;
+        current.add(token);
+        if (held.has(token)) continue;
+        if (key === "Start") { if (!bootComplete) (power.disabled ? skipBoot : power).click(); }
+        else if (key === "Enter") {
+          if (!bootComplete && !power.disabled) power.click();
+          else if (document.activeElement?.matches("button,a[href]")) document.activeElement.click();
+          else main.querySelector(".is-centered .case-trigger")?.click();
+        } else padKey(key);
+      }
+    }
+    held = current;
+    padFrame = requestAnimationFrame(readPads);
+  }
+  window.addEventListener("gamepadconnected", event => {
+    pads.add(event.gamepad.index);
+    if (!padFrame) padFrame = requestAnimationFrame(readPads);
+  });
+  window.addEventListener("gamepaddisconnected", event => pads.delete(event.gamepad.index));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && pads.size && !padFrame) padFrame = requestAnimationFrame(readPads);
+  });
   window.addEventListener("hashchange", navigate);
-  power.disabled = false;
+  let sameSession = false;
+  try { sameSession = sessionStorage.getItem("hf-console-booted") === "yes"; } catch {}
+  if (sameSession || new URLSearchParams(location.search).get("boot") === "0") finishPower(false);
+  else {
+    screen.inert = true;
+    screen.setAttribute("aria-hidden", "true");
+    skipBoot.hidden = false;
+    power.disabled = false;
+    power.focus({ scroll: false, preventScroll: true });
+  }
   window.watchHfCatalog?.((items, assetBase, coverData, homeData) => {
+    items = options ? options.designs(items) : items;
     const designsChanged = JSON.stringify(designs) !== JSON.stringify(items);
     if (designsChanged) designs.splice(0, designs.length, ...items);
     liveAssetBase = assetBase;
     applyHomeSettings(homeData);
     const coversChanged = loadCovers(coverData);
-    if (bootComplete && !transitioning) syncScene(activeRoute);
+    if (!bootComplete) return;
+    if (!transitioning) syncScene(activeRoute);
     if (designsChanged || coversChanged) liveRefreshPending = true;
     refreshLiveGallery();
   });
