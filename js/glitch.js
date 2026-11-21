@@ -41,7 +41,7 @@
     canvas.hidden = false;
 
     return new Promise((resolve,reject) => {
-      let start, frame, last, samples = 0, total = 0;
+      let start, frame, last, samples = 0, total = 0, lastBand = -1;
       let swapped = false;
       function commit() {
         if (swapped) return;
@@ -63,7 +63,7 @@
         if (last && samples < 6) {
           total += now-last;
           samples++;
-          if (samples === 6 && total/samples > 24) {
+          if ((samples === 6 || samples >= 3 && total >= 120) && total/samples > 24) {
             quality = total/samples > 40 ? 0 : 1;
             if (!quality) { context = null; canvas.classList.add("is-fade"); }
           }
@@ -72,9 +72,11 @@
         const progress = Math.min((now-start)/duration,1);
         const opacity = progress < peak ? progress/peak : (1-progress)/(1-peak);
         canvas.style.opacity = String(opacity);
-        if (context && quality === 2) {
-          const y = Math.floor(progress*10)*11 % sprite.height;
-          const x = Math.floor(progress*17) % 9;
+        const band = Math.floor(progress*10);
+        if (context && quality === 2 && lastBand !== band) {
+          lastBand = band;
+          const y = band*11 % sprite.height;
+          const x = band % 9;
           context.drawImage(sprite, x, y, sprite.width-x, 8, 0, y, canvas.width, 8);
         }
         try { if (progress >= peak) commit(); } catch (error) { finish(error); return; }

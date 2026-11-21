@@ -1039,7 +1039,7 @@ img { display: block; max-width: 100%; }
 .contact-links a:hover { color: #f3e8ff; }
 .contact-links svg { display: block; width: 82%; height: auto; }
 
-#transition { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8; pointer-events: none; image-rendering: pixelated; }
+#transition { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8; pointer-events: none; image-rendering: pixelated; will-change: opacity; contain: strict; }
 #transition.is-fade { background: var(--screen); }
 
 .eject-overlay {
