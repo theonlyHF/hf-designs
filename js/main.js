@@ -186,20 +186,6 @@
   function remember(key, value) {
     try { localStorage.setItem(key, value); } catch { /* A preferência continua disponível nesta visita. */ }
   }
-  async function copyLink(hash, status, button) {
-    const url = new URL(hash, location.href).href;
-    try {
-      await navigator.clipboard.writeText(url);
-      status.textContent = "Link copiado.";
-      const original = button.dataset.originalLabel || button.textContent;
-      button.dataset.originalLabel = original;
-      button.textContent = "Link copiado";
-      clearTimeout(button.copyTimer);
-      button.copyTimer = setTimeout(() => { button.textContent = original; }, 1600);
-    } catch {
-      window.prompt("Copie este link", url);
-    }
-  }
   let analyticsStarted = false;
   let analyticsReady = false;
   const queuedGalleryViews = [];
@@ -395,8 +381,6 @@
   for (const name of ["pointerup", "pointercancel", "lostpointercapture"])
     zoomSurface.addEventListener(name, event => pointers.delete(event.pointerId));
   viewerImage.draggable = false;
-  dialog.querySelector("[data-copy]").addEventListener("click", event =>
-    copyLink(routeLink(activeRoute, viewerItems[viewerPosition]), dialog.querySelector("[data-link-status]"), event.currentTarget));
 
   function showViewerItem(position, preserveZoom = false) {
     viewerPosition = (position + viewerItems.length) % viewerItems.length;
