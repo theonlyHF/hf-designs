@@ -222,33 +222,6 @@
   function remember(key, value) {
     try { localStorage.setItem(key, value); } catch { /* A preferência continua disponível nesta visita. */ }
   }
-  async function copyLink(hash, status, button) {
-    const url = new URL(hash, location.href).href;
-    try {
-      try { await navigator.clipboard.writeText(url); }
-      catch {
-        const field = document.createElement("textarea");
-        field.value = url;
-        field.setAttribute("aria-label", "Link da obra");
-        field.style.position = "fixed";
-        dialog.append(field);
-        field.select();
-        const copied = document.execCommand("copy");
-        field.remove();
-        button.focus({ preventScroll: true });
-        if (!copied) throw new Error("Área de transferência indisponível");
-      }
-      audio.cue("copy");
-      status.textContent = "Link copiado.";
-      const original = button.dataset.originalLabel || button.textContent;
-      button.dataset.originalLabel = original;
-      button.textContent = "Link copiado";
-      clearTimeout(button.copyTimer);
-      button.copyTimer = setTimeout(() => { button.textContent = original; }, 1600);
-    } catch {
-      window.prompt("Copie este link", url);
-    }
-  }
   let analyticsEndpoint;
   function count(path, title, event) {
     if (!analyticsEndpoint || navigator.webdriver || navigator.doNotTrack === "1") return;
@@ -462,8 +435,6 @@
     updateZoom();
   }, {passive:false});
   viewerImage.draggable = false;
-  dialog.querySelector("[data-copy]").addEventListener("click", event =>
-    copyLink(routeLink(activeRoute, viewerItems[viewerPosition]), dialog.querySelector("[data-link-status]"), event.currentTarget));
 
   const viewerLoad = dialog.querySelector(".viewer-load");
   const viewerRetry = dialog.querySelector("[data-retry]");
@@ -479,14 +450,6 @@
   });
   viewerRetry.addEventListener("click", () => {
     if (viewerItems[viewerPosition]) setViewerImage(imagePath(viewerItems[viewerPosition]));
-  });
-  const share = dialog.querySelector("[data-share]");
-  share.hidden = typeof navigator.share !== "function";
-  share.addEventListener("click", async () => {
-    const item = viewerItems[viewerPosition];
-    if (!item) return;
-    try { await navigator.share({ title: item.titulo, url: new URL(routeLink(activeRoute, item), location.href).href }); }
-    catch (error) { if (error.name !== "AbortError") dialog.querySelector("[data-link-status]").textContent = "Não foi possível compartilhar."; }
   });
 
   function showViewerItem(position, preserveZoom = false) {
