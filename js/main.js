@@ -11,10 +11,13 @@
   const intro = rig.querySelector(".site-intro");
   const power = rig.querySelector(".console-power");
   const powerLabel = power.querySelector("[data-power-label]");
+  const powerOff = rig.querySelector(".console-off");
+  const volumeButtons = rig.querySelectorAll("[data-volume-step]");
+  const volumeDisplay = rig.querySelector(".tv-volume-display");
   const simpleButton = rig.querySelector(".console-simple");
   const silentAudio = {
     powerOn() {}, finishBoot() {}, cue() {}, setScene() {}, setVolume() {}, toggleMute: () => true,
-    preferences: () => ({muted:true, music:0, effects:0}),
+    preferences: () => ({muted:true, master:0}),
   };
   const audio = window.hfAudio || silentAudio;
   const sound = rig.querySelector(".console-sound");
@@ -1366,6 +1369,7 @@
 
   async function ejectGallery() {
     if (transitioning) return;
+    const ticket = bootTicket;
     transitioning = true;
     const departure = location.hash;
     const previousCover = activeRoute;
@@ -1384,16 +1388,18 @@
         await new Promise(resolve => setTimeout(resolve, duration || 850));
       }
     } finally {
-      ejectOverlay.hidden = true;
-      screen.inert = false;
-      if (location.hash === departure) location.hash = "/";
-      requestedRoute = getRoute();
-      const previousPosition = libraryRoutes.indexOf(previousCover);
-      if (requestedRoute === "/" && previousPosition >= 0) coverPosition = previousPosition;
-      renderRoute(requestedRoute, true);
-      if (requestedRoute === "/" && previousPosition >= 0)
-        main.querySelector(".game-cover.is-centered .case-trigger")?.focus({ preventScroll: true });
-      transitioning = false;
+      if (ticket === bootTicket) {
+        ejectOverlay.hidden = true;
+        screen.inert = false;
+        if (location.hash === departure) location.hash = "/";
+        requestedRoute = getRoute();
+        const previousPosition = libraryRoutes.indexOf(previousCover);
+        if (requestedRoute === "/" && previousPosition >= 0) coverPosition = previousPosition;
+        renderRoute(requestedRoute, true);
+        if (requestedRoute === "/" && previousPosition >= 0)
+          main.querySelector(".game-cover.is-centered .case-trigger")?.focus({ preventScroll: true });
+        transitioning = false;
+      }
     }
   }
 
@@ -1405,20 +1411,23 @@
       syncViewerRoute();
       return;
     }
+    const ticket = bootTicket;
     transitioning = true;
     if (dialog.open) dialog.close();
 
     try {
       await (window.hfTransition || (swap => swap()))(() => {
-        if (requestedRoute !== activeRoute) renderRoute(requestedRoute, true);
+        if (ticket === bootTicket && requestedRoute !== activeRoute) renderRoute(requestedRoute, true);
       }, simpleMode);
     } finally {
-      transitioning = false;
-      refreshLiveGallery();
-      if (requestedRoute !== activeRoute) navigate();
-      else {
-        syncViewerRoute();
-        syncScene(activeRoute);
+      if (ticket === bootTicket) {
+        transitioning = false;
+        refreshLiveGallery();
+        if (requestedRoute !== activeRoute) navigate();
+        else {
+          syncViewerRoute();
+          syncScene(activeRoute);
+        }
       }
     }
   }
@@ -1456,6 +1465,15 @@
   } else window.addEventListener("resize", drawCables, { passive: true });
 
   let bootTicket = 0;
+  let volumeTimer;
+  function showVolumeControls(enabled) {
+    for (const button of volumeButtons) button.disabled = !enabled || audio === silentAudio;
+    if (!enabled) {
+      clearTimeout(volumeTimer);
+      volumeDisplay.hidden = true;
+    }
+  }
+
   function finishPower(moveFocus = true) {
     if (bootComplete) return;
     bootTicket++;
@@ -1465,36 +1483,45 @@
     screen.removeAttribute("aria-hidden");
     simpleButton.hidden = false;
     sound.hidden = audio === silentAudio;
-    rig.querySelector(".console-volume").hidden = audio === silentAudio;
-    power.disabled = false;
+    showVolumeControls(true);
+    power.hidden = true;
+    powerOff.disabled = false;
     rig.classList.add("is-powered");
     try { sessionStorage.setItem("hf-console-booted", "yes"); } catch {}
-    powerLabel.textContent = "Desligar console";
     bootComplete = true;
     renderRoute(getRoute(), moveFocus);
   }
+  powerOff.addEventListener("click", () => {
+    ++bootTicket;
+    audio.cue("powerOff");
+    audio.finishBoot();
+    audio.setScene(null);
+    bootComplete = false;
+    transitioning = false;
+    intro.hidden = ejectOverlay.hidden = true;
+    screen.inert = true;
+    screen.setAttribute("aria-hidden", "true");
+    rig.classList.remove("is-powered");
+    stopCoverLoading?.();
+    stopCoverLoading = null;
+    syncHomeMotion = null;
+    main.replaceChildren();
+    sound.hidden = simpleButton.hidden = powerOff.disabled = true;
+    showVolumeControls(false);
+    try { sessionStorage.removeItem("hf-console-booted"); } catch {}
+    powerLabel.textContent = "Ligar console";
+    power.hidden = power.disabled = false;
+    power.focus({ preventScroll: true });
+  });
   power.addEventListener("click", async event => {
-    if (bootComplete) {
-      if (transitioning || dialog.open) return;
-      audio.cue("powerOff");
-      audio.setScene(null);
-      bootComplete = false;
-      screen.inert = true;
-      screen.setAttribute("aria-hidden", "true");
-      rig.classList.remove("is-powered");
-      stopCoverLoading?.();
-      main.replaceChildren();
-      sound.hidden = simpleButton.hidden = rig.querySelector(".console-volume").hidden = true;
-      try { sessionStorage.removeItem("hf-console-booted"); } catch {}
-      powerLabel.textContent = "Ligar console";
-      return;
-    }
     const ticket = ++bootTicket;
     power.disabled = true;
     powerLabel.textContent = "Iniciando…";
+    powerOff.disabled = false;
     rig.classList.add("is-powered");
     const brief = getRoute() !== "/";
     if (brief || reducedMotion.matches || simpleMode) intro.style.setProperty("--boot-duration", reducedMotion.matches || simpleMode ? ".48s" : "1.25s");
+    else intro.style.removeProperty("--boot-duration");
     intro.hidden = false;
     audio.powerOn(simpleMode ? "silent" : brief || reducedMotion.matches ? "pulse" : home.bootPreset,
       brief || reducedMotion.matches ? "" : soundUrl(home.sounds.boot), true);
@@ -1521,12 +1548,17 @@
     updateSimple();
   });
   updateSimple();
-  const audioPreferences = audio.preferences();
-  showMute(audioPreferences.muted);
-  for (const volume of rig.querySelectorAll("[data-volume]")) {
-    const key = volume.dataset.volume;
-    volume.value = Math.round(audioPreferences[key] * 100);
-    volume.addEventListener("input", () => audio.setVolume(key, Number(volume.value) / 100));
+  showMute(audio.preferences().muted);
+  for (const button of volumeButtons) {
+    button.addEventListener("click", () => {
+      const current = Math.round(audio.preferences().master * 100);
+      const level = Math.max(0, Math.min(100, current + Number(button.dataset.volumeStep)));
+      audio.setVolume("master", level / 100);
+      volumeDisplay.textContent = "Volume " + level + "%";
+      volumeDisplay.hidden = false;
+      clearTimeout(volumeTimer);
+      volumeTimer = setTimeout(() => { volumeDisplay.hidden = true; }, 1800);
+    });
   }
   sound.addEventListener("click", () => {
     audio.unlock?.();

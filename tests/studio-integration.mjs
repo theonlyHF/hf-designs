@@ -42,7 +42,7 @@ try {
     assert.match(page.url(),/#\/posters$/);
     await page.reload();
     await page.locator('.screen-scroll:not([inert])').waitFor();
-    assert.equal(await page.locator('.console-power').innerText().then(s=>s.includes('Desligar')),true);
+    assert.equal(await page.getByRole('button',{name:'Desligar console'}).isEnabled(),true);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth),false);
     assert.deepEqual(messages,[]);
     console.log('OK',mobile?'celular':'desktop','boot, capa inicial, tipo de caixa, arte/rótulo do CD, solicitação da faixa, Voltar, sessão');

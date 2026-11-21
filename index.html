@@ -33,16 +33,16 @@
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://theonlyhf.github.io/hf-designs/#hf","name":"HF Designs","sameAs":["https://www.instagram.com/hf.designs01/","https://www.youtube.com/@theonlyhf"]},{"@type":"ImageGallery","name":"Portfólio HF Designs","url":"https://theonlyhf.github.io/hf-designs/","creator":{"@id":"https://theonlyhf.github.io/hf-designs/#hf"}}]}</script>
   <title>HF Designs — Portfólio de design</title>
   <link rel="icon" href="assets/hf-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
   <script defer src="data/designs.js"></script>
   <script defer src="data/covers.js"></script>
   <script defer src="data/home.js"></script>
   <script defer src="js/glitch.js?v=2"></script>
-  <script defer src="js/audio.js?v=6"></script>
+  <script defer src="js/audio.js?v=7"></script>
   <script defer src="js/options.js?v=1"></script>
   <script defer src="js/catalog-live.js?v=3"></script>
   <script defer src="data/thumbnails.js?v=2"></script>
-  <script defer src="js/main.js?v=22"></script>
+  <script defer src="js/main.js?v=23"></script>
 </head>
 <body>
   <div class="room">
@@ -96,6 +96,7 @@
           </main>
         </div>
         <canvas id="transition" aria-hidden="true" hidden></canvas>
+        <output class="tv-volume-display" role="status" hidden></output>
         <div class="eject-overlay" role="status" hidden>
           <div class="eject-display">
             <span class="disc-surface eject-disc" aria-hidden="true"></span>
@@ -109,13 +110,18 @@
         </div>
       </div>
     </div>
-    <div class="monitor-panel" aria-hidden="true">
-      <div class="speaker"></div>
+    <div class="monitor-panel">
+      <div class="speaker" aria-hidden="true"></div>
       <div class="tv-controls">
-        <span class="av-inputs"><i></i><i></i><i></i></span>
-        <span class="power-light"></span><span class="power-button">⏻</span>
+        <span class="av-inputs" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="power-light" aria-hidden="true"></span>
+        <div class="tv-volume" role="group" aria-label="Volume da TV">
+          <span aria-hidden="true">VOL</span>
+          <button class="hardware-button" type="button" data-volume-step="-10" aria-label="Diminuir volume" title="Diminuir volume" disabled>−</button>
+          <button class="hardware-button" type="button" data-volume-step="10" aria-label="Aumentar volume" title="Aumentar volume" disabled>+</button>
+        </div>
       </div>
-      <div class="speaker"></div>
+      <div class="speaker" aria-hidden="true"></div>
     </div>
   </div>
   <div class="console">
@@ -126,6 +132,7 @@
     </div>
     <div class="console-actions">
       <button class="console-power" type="button" disabled><span class="console-led" aria-hidden="true"></span><span aria-hidden="true">⏻</span> <span data-power-label>Ligar console</span></button>
+      <button class="hardware-button console-off" type="button" aria-label="Desligar console" title="Desligar console" disabled>⏻</button>
       <button class="console-simple" type="button" aria-pressed="false" hidden>Modo simples</button>
       <button class="console-sound" type="button" aria-label="Silenciar som" aria-pressed="false" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -134,10 +141,6 @@
           <path class="sound-muted" d="m16 10 5 5m0-5-5 5"/>
         </svg>
       </button>
-      <details class="console-volume" hidden><summary>Volume</summary>
-        <label>Trilha <input data-volume="music" type="range" min="0" max="100"></label>
-        <label>Efeitos <input data-volume="effects" type="range" min="0" max="100"></label>
-      </details>
     </div>
     <div class="console-ports" aria-hidden="true"><i></i><i></i></div>
   </div>

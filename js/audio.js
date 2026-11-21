@@ -31,7 +31,7 @@
   const lastCue = new Map();
   const mobile = matchMedia("(pointer: coarse)");
   const isMuted = () => muted || simpleMode || (mobile.matches && config?.master.muteOnMobile);
-  const volumes = { music: 1, effects: 1 };
+  const volumes = { music: 1, effects: 1, master: 1 };
   try {
     const saved = JSON.parse(localStorage.getItem("hf-audio") || "{}");
     muted = saved.muted === true;
@@ -159,8 +159,7 @@
     const element = new Audio(file);
     const began = performance.now();
     bootTrack = element;
-    element.volume = .35 * volumes.effects;
-    element.muted = Boolean(isMuted());
+    applyVolume();
     const fallback = () => {
       if (bootTrack !== element) return;
       finishBoot();
@@ -203,11 +202,10 @@
         startMusic(true);
       };
       element.loop = true;
-      element.volume = .14 * volumes.music;
-      element.muted = Boolean(isMuted());
       element.preload = "metadata";
       element.addEventListener("error", fallback, { once: true });
       music = track;
+      applyVolume();
       element.src = sceneFile;
       element.play().catch(fallback);
       return;
@@ -385,7 +383,7 @@
   }
 
   function applyVolume() {
-    const master = config?.master.volume ?? 1;
+    const master = volumes.master * (config?.master.volume ?? 1);
     if (bus) bus.gain.setTargetAtTime(isMuted() ? 0 : master * .4 * volumes.effects, context.currentTime, .045);
     if (musicBus) musicBus.gain.setTargetAtTime(isMuted() ? 0 : master * .4 * volumes.music, context.currentTime, .045);
     if (music?.element) {
