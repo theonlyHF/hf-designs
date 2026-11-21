@@ -1302,7 +1302,7 @@ body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: #dfc9ff55;
 }
-.console-skip, .console-simple, [data-share], [data-retry] {
+.console-simple, [data-share], [data-retry] {
   border: 1px solid var(--button-border); border-radius: .5rem; background: var(--button-bg);
   color: var(--text); padding: .35rem .55rem; font-size: .78rem;
 }

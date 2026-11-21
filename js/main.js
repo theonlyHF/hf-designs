@@ -11,7 +11,6 @@
   const intro = rig.querySelector(".site-intro");
   const power = rig.querySelector(".console-power");
   const powerLabel = power.querySelector("[data-power-label]");
-  const skipBoot = rig.querySelector(".console-skip");
   const simpleButton = rig.querySelector(".console-simple");
   const silentAudio = {
     powerOn() {}, finishBoot() {}, cue() {}, setScene() {}, setVolume() {}, toggleMute: () => true,
@@ -1501,7 +1500,6 @@
     intro.hidden = true;
     screen.inert = false;
     screen.removeAttribute("aria-hidden");
-    skipBoot.hidden = true;
     simpleButton.hidden = false;
     sound.hidden = audio === silentAudio;
     rig.querySelector(".console-volume").hidden = audio === silentAudio;
@@ -1523,7 +1521,6 @@
       rig.classList.remove("is-powered");
       stopCoverLoading?.();
       main.replaceChildren();
-      skipBoot.hidden = false;
       sound.hidden = simpleButton.hidden = rig.querySelector(".console-volume").hidden = true;
       try { sessionStorage.removeItem("hf-console-booted"); } catch {}
       powerLabel.textContent = "Ligar console";
@@ -1544,7 +1541,6 @@
 
     if (ticket === bootTicket) finishPower(event.detail === 0);
   });
-  skipBoot.addEventListener("click", () => finishPower());
 
   function showMute(muted) {
     sound.setAttribute("aria-pressed", String(muted));
@@ -1611,7 +1607,10 @@
         const token = pad.index + ":" + index;
         current.add(token);
         if (held.has(token)) continue;
-        if (key === "Start") { if (!bootComplete) (power.disabled ? skipBoot : power).click(); }
+        if (key === "Start" && !bootComplete) {
+          if (power.disabled) finishPower();
+          else power.click();
+        }
         else if (key === "Enter") {
           if (!bootComplete && !power.disabled) power.click();
           else if (document.activeElement?.matches("button,a[href]")) document.activeElement.click();
@@ -1637,7 +1636,6 @@
   else {
     screen.inert = true;
     screen.setAttribute("aria-hidden", "true");
-    skipBoot.hidden = false;
     power.disabled = false;
     power.focus({ scroll: false, preventScroll: true });
   }
