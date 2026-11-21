@@ -1343,6 +1343,12 @@
     openViewer(items, index, trigger);
   }
 
+  function syncViewerRoute() {
+    const id = designFromHash();
+    if (!id && dialog.open) dialog.close();
+    else if (id && (!dialog.open || designKey(viewerItems[viewerPosition]) !== id)) openLinkedDesign();
+  }
+
   function renderRoute(path, moveFocus = false) {
     liveRefreshPending = false;
     const gallery = galleries[path];
@@ -1434,8 +1440,7 @@
     requestedRoute = getRoute();
     if (!bootComplete || transitioning) return;
     if (requestedRoute === activeRoute) {
-      if (designFromHash()) openLinkedDesign();
-      else if (dialog.open) dialog.close();
+      syncViewerRoute();
       return;
     }
     transitioning = true;
@@ -1449,7 +1454,10 @@
       transitioning = false;
       refreshLiveGallery();
       if (requestedRoute !== activeRoute) navigate();
-      else syncScene(activeRoute);
+      else {
+        syncViewerRoute();
+        syncScene(activeRoute);
+      }
     }
   }
 
