@@ -10,8 +10,6 @@
   const rig = document.querySelector(".rig");
   const intro = rig.querySelector(".site-intro");
   const power = rig.querySelector(".console-power");
-  const powerLabel = power.querySelector("[data-power-label]");
-  const powerOff = rig.querySelector(".console-off");
   const volumeButtons = rig.querySelectorAll("[data-volume-step]");
   const volumeDisplay = rig.querySelector(".tv-volume-display");
   const simpleButton = rig.querySelector(".console-simple");
@@ -1466,6 +1464,11 @@
 
   let bootTicket = 0;
   let volumeTimer;
+  function showPowerAction(powered) {
+    const label = powered ? "Desligar console" : "Ligar console";
+    power.setAttribute("aria-label", label);
+    power.title = label;
+  }
   function showVolumeControls(enabled) {
     for (const button of volumeButtons) button.disabled = !enabled || audio === silentAudio;
     if (!enabled) {
@@ -1484,14 +1487,13 @@
     simpleButton.hidden = false;
     sound.hidden = audio === silentAudio;
     showVolumeControls(true);
-    power.hidden = true;
-    powerOff.disabled = false;
     rig.classList.add("is-powered");
+    showPowerAction(true);
     try { sessionStorage.setItem("hf-console-booted", "yes"); } catch {}
     bootComplete = true;
     renderRoute(getRoute(), moveFocus);
   }
-  powerOff.addEventListener("click", () => {
+  function turnOff() {
     ++bootTicket;
     audio.cue("powerOff");
     audio.finishBoot();
@@ -1506,19 +1508,20 @@
     stopCoverLoading = null;
     syncHomeMotion = null;
     main.replaceChildren();
-    sound.hidden = simpleButton.hidden = powerOff.disabled = true;
+    sound.hidden = simpleButton.hidden = true;
     showVolumeControls(false);
     try { sessionStorage.removeItem("hf-console-booted"); } catch {}
-    powerLabel.textContent = "Ligar console";
-    power.hidden = power.disabled = false;
+    showPowerAction(false);
     power.focus({ preventScroll: true });
-  });
+  }
   power.addEventListener("click", async event => {
+    if (rig.classList.contains("is-powered")) {
+      turnOff();
+      return;
+    }
     const ticket = ++bootTicket;
-    power.disabled = true;
-    powerLabel.textContent = "Iniciando…";
-    powerOff.disabled = false;
     rig.classList.add("is-powered");
+    showPowerAction(true);
     const brief = getRoute() !== "/";
     if (brief || reducedMotion.matches || simpleMode) intro.style.setProperty("--boot-duration", reducedMotion.matches || simpleMode ? ".48s" : "1.25s");
     else intro.style.removeProperty("--boot-duration");
@@ -1603,11 +1606,11 @@
         current.add(token);
         if (held.has(token)) continue;
         if (key === "Start" && !bootComplete) {
-          if (power.disabled) finishPower();
+          if (rig.classList.contains("is-powered")) finishPower();
           else power.click();
         }
         else if (key === "Enter") {
-          if (!bootComplete && !power.disabled) power.click();
+          if (!bootComplete && !rig.classList.contains("is-powered")) power.click();
           else if (document.activeElement?.matches("button,a[href]")) document.activeElement.click();
           else main.querySelector(".is-centered .case-trigger")?.click();
         } else padKey(key);
@@ -1627,11 +1630,11 @@
   window.addEventListener("hashchange", navigate);
   let sameSession = false;
   try { sameSession = sessionStorage.getItem("hf-console-booted") === "yes"; } catch {}
+  power.disabled = false;
   if (sameSession || new URLSearchParams(location.search).get("boot") === "0") finishPower(false);
   else {
     screen.inert = true;
     screen.setAttribute("aria-hidden", "true");
-    power.disabled = false;
     power.focus({ scroll: false, preventScroll: true });
   }
   window.watchHfCatalog?.((items, assetBase, coverData, homeData) => {

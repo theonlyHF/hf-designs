@@ -33,7 +33,7 @@
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://theonlyhf.github.io/hf-designs/#hf","name":"HF Designs","sameAs":["https://www.instagram.com/hf.designs01/","https://www.youtube.com/@theonlyhf"]},{"@type":"ImageGallery","name":"Portfólio HF Designs","url":"https://theonlyhf.github.io/hf-designs/","creator":{"@id":"https://theonlyhf.github.io/hf-designs/#hf"}}]}</script>
   <title>HF Designs — Portfólio de design</title>
   <link rel="icon" href="assets/hf-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=21">
+  <link rel="stylesheet" href="css/style.css?v=22">
   <script defer src="data/designs.js"></script>
   <script defer src="data/covers.js"></script>
   <script defer src="data/home.js"></script>
@@ -42,7 +42,7 @@
   <script defer src="js/options.js?v=1"></script>
   <script defer src="js/catalog-live.js?v=3"></script>
   <script defer src="data/thumbnails.js?v=2"></script>
-  <script defer src="js/main.js?v=23"></script>
+  <script defer src="js/main.js?v=24"></script>
 </head>
 <body>
   <div class="room">
@@ -131,16 +131,20 @@
       <div class="console-vents"></div>
     </div>
     <div class="console-actions">
-      <button class="console-power" type="button" disabled><span class="console-led" aria-hidden="true"></span><span aria-hidden="true">⏻</span> <span data-power-label>Ligar console</span></button>
-      <button class="hardware-button console-off" type="button" aria-label="Desligar console" title="Desligar console" disabled>⏻</button>
-      <button class="console-simple" type="button" aria-pressed="false" hidden>Modo simples</button>
-      <button class="console-sound" type="button" aria-label="Silenciar som" aria-pressed="false" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 9h4l5-4v14l-5-4H3z"/>
-          <path class="sound-waves" d="M16 9a4 4 0 0 1 0 6m2-9a8 8 0 0 1 0 12"/>
-          <path class="sound-muted" d="m16 10 5 5m0-5-5 5"/>
-        </svg>
-      </button>
+      <div class="console-power-control">
+        <span class="console-led" aria-hidden="true"></span>
+        <button class="hardware-button console-power" type="button" aria-label="Ligar console" title="Ligar console" disabled>⏻</button>
+      </div>
+      <div class="console-settings">
+        <button class="console-simple" type="button" aria-pressed="false" hidden>Modo simples</button>
+        <button class="console-sound" type="button" aria-label="Silenciar som" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9h4l5-4v14l-5-4H3z"/>
+            <path class="sound-waves" d="M16 9a4 4 0 0 1 0 6m2-9a8 8 0 0 1 0 12"/>
+            <path class="sound-muted" d="m16 10 5 5m0-5-5 5"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="console-ports" aria-hidden="true"><i></i><i></i></div>
   </div>
