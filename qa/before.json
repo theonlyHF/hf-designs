@@ -1,0 +1,785 @@
+[
+  {
+    "name": "chromium",
+    "width": 360,
+    "height": 640,
+    "errors": [
+      "TimeoutError: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.console-power')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"console-power\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n"
+    ],
+    "failed": [],
+    "throttle": "6× + Slow 4G",
+    "initial": {
+      "lcp": 5776,
+      "cls": 0,
+      "longTasks": 2858,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 375,
+    "height": 667,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 1708,
+      "cls": 0,
+      "longTasks": 241,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1708,
+      "cls": 0.038895260390794106,
+      "longTasks": 508,
+      "maxEvent": 904
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 340,
+      "cls": 0,
+      "longTasks": 160,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "axe": [
+      [
+        "label-content-name-mismatch",
+        "serious",
+        [
+          [
+            "button[aria-label=\"Abrir caixa: Destaques 2026\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Banners\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Pôsteres\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Estampas\"]"
+          ]
+        ]
+      ],
+      [
+        "scrollable-region-focusable",
+        "serious",
+        [
+          [
+            ".has-brand-cover > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            ".is-centered > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"posters\"] > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"estampas\"] > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"outros\"] > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            ".cover-channel > .case-model > .case-back > .case-back-copy"
+          ]
+        ]
+      ]
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 340,
+      "cls": 0.025234737904044416,
+      "longTasks": 565,
+      "maxEvent": 648
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 412,
+    "height": 915,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 260,
+      "cls": 0,
+      "longTasks": 61,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 260,
+      "cls": 0.020348839366759176,
+      "longTasks": 62,
+      "maxEvent": 352
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 616,
+      "cls": 0,
+      "longTasks": 136,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 616,
+      "cls": 0.022674147777350717,
+      "longTasks": 183,
+      "maxEvent": 400
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 720,
+    "height": 1600,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 548,
+      "cls": 0,
+      "longTasks": 182,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 548,
+      "cls": 0.009415537889268664,
+      "longTasks": 209,
+      "maxEvent": 200
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 768,
+    "height": 1024,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 332,
+      "cls": 0,
+      "longTasks": 84,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 332,
+      "cls": 0.012266096038122972,
+      "longTasks": 85,
+      "maxEvent": 192
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 260,
+      "cls": 0,
+      "longTasks": 57,
+      "maxEvent": 0,
+      "requests": 20,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 365774,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 260,
+      "cls": 0.019989522768335627,
+      "longTasks": 62,
+      "maxEvent": 272
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1024,
+    "height": 768,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 296,
+      "cls": 0,
+      "longTasks": 89,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 296,
+      "cls": 0.023151824289622407,
+      "longTasks": 169,
+      "maxEvent": 296
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "throttle": "3×",
+    "initial": {
+      "lcp": 876,
+      "cls": 0.0006938921610514323,
+      "longTasks": 730,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "axe": [
+      [
+        "label-content-name-mismatch",
+        "serious",
+        [
+          [
+            "button[aria-label=\"Abrir caixa: Destaques 2026\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Banners\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Pôsteres\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Estampas\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Outros designs\"]"
+          ],
+          [
+            "button[aria-label=\"Abrir caixa: Meu canal\"]"
+          ]
+        ]
+      ],
+      [
+        "scrollable-region-focusable",
+        "serious",
+        [
+          [
+            ".has-brand-cover > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            ".is-centered > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"posters\"] > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"estampas\"] > .case-model > .case-back > .case-back-copy"
+          ],
+          [
+            "div[data-collection=\"outros\"] > .case-model > .case-back > .case-back-copy"
+          ]
+        ]
+      ]
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 876,
+      "cls": 0.015885970751444496,
+      "longTasks": 1845,
+      "maxEvent": 264
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1440,
+    "height": 900,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 376,
+      "cls": 0,
+      "longTasks": 115,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 376,
+      "cls": 0.011943737742734052,
+      "longTasks": 131,
+      "maxEvent": 280
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1920,
+    "height": 1080,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 212,
+      "cls": 0,
+      "longTasks": 56,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 212,
+      "cls": 0.005542833367492927,
+      "longTasks": 60,
+      "maxEvent": 168
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 2560,
+    "height": 1440,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 228,
+      "cls": 0,
+      "longTasks": 66,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 228,
+      "cls": 0.0023383828269110786,
+      "longTasks": 273,
+      "maxEvent": 192
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 3440,
+    "height": 1440,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 464,
+      "cls": 0,
+      "longTasks": 193,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 464,
+      "cls": 0.00129502650879229,
+      "longTasks": 279,
+      "maxEvent": 192
+    }
+  },
+  {
+    "name": "firefox",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 982,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 19,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "png": 609871,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1077,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 280
+    }
+  },
+  {
+    "name": "firefox",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 339,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 20,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 1778,
+        "png": 609871,
+        "json": 7180,
+        "jpg": 356140,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 718,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 88
+    }
+  },
+  {
+    "name": "webkit",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 478,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 17,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 889,
+        "json": 7180,
+        "jpg": 310529,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1022,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 256
+    }
+  },
+  {
+    "name": "webkit",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 491,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 18,
+      "bytes": {
+        "/": 16015,
+        "css": 54506,
+        "js": 86865,
+        "svg": 889,
+        "jpg": 356140,
+        "json": 7180,
+        "woff2": 22588
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 491,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 128
+    }
+  }
+]

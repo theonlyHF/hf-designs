@@ -1,0 +1,16 @@
+# Contrato de dados do console
+
+Os arquivos públicos continuam em `data/designs.js`, `data/covers.js`, `data/home.js` e `data/catalog.json`. Os scripts continuam atribuindo `window.HF_DESIGNS`, `window.HF_COVERS` e `window.HF_HOME`. A atualização viva lê o JSON com `schemaVersion: 1` ou sem versão (legado). O Studio também pode gravar `HF_HOME.schemaVersion` quando existe áudio avançado. Todas as opções abaixo são opcionais.
+
+| Área | Campos e padrões |
+| --- | --- |
+| Design | `altText` cai para título e categoria. `dominantColor` aceita #RRGGBB. `width`/`height` reservam a proporção original. `data/thumbnails.js` usa [arquivo de fallback, largura, altura, variantes WebP, cor]. Cada variante é [arquivo, largura]. |
+| Áudio | `home.audio.master` (volume 0–1, startMuted, muteOnMobile). Ausente preserva a preferência do usuário e o comportamento anterior. `home.sounds` continua sendo a fonte dos slots antigos. |
+| Faixas | `home.audio.tracks[]`: id, title, file (basename), scope (all, home, contact, gallery, cover:id), enabled, mobile, volume, fadeInMs/fadeOutMs, loop, loopStart/loopEnd, trimStart/trimEnd, crossfadeMs, gapMs, delayMs, order, playbackRate. Por padrão toca em volume 1 e velocidade 1, repete, sem cortes, fades ou pausas. Pontos em segundos e temporizadores em ms. `mode=sequential` ou `shuffle`. Em loop a faixa atual permanece até trocar de tela. Crossfade de faixas sem loop na mesma lista, sem pausa. |
+| Efeitos | `home.audio.sfx` por nome de evento (move, confirm, back, open, close, hover, powerOn, powerOff, glitch, copy). Arquivo opcional, enabled, volume, cooldownMs, maxVoices, pitchVariancePct. Arquivo ausente conserva a vinheta sintetizada quando o evento já tinha som. Ducking opcional (amountDb, attackMs, releaseMs) e filtro no visualizador (modalLowpass.hz). |
+| Caixa | `caseType`, `frameOptions`, `texture`, `gloss`, `shadow`, `spine`, `backArt`. Os nomes frameOptions e backArt evitam conflito com `frame` (arquivo de moldura) e `back` (cor) preexistentes. Cores em #RRGGBB. |
+| CD | `disc.{art,holeRatio,tint,gloss,labelText,spin}`. Furo em fração do diâmetro (0,05–0,40). `spin` usa onHover, onSelect, rpm e direction (normal/reverse). Arte ausente herda o estilo de disco escolhido anteriormente. |
+| Movimento e organização | `motion.{hover,flipOnSelect,durationMs,intensity}`, `sound.{hover,select,flip}`, visible, featured, defaultSelected, collection, linkedCategory, linkedDesignIds, altText. Ocultar retira do seletor e preserva a rota. Os vínculos selecionam a união das obras escolhidas e da categoria. Sem vínculos valem filtros da capa original. |
+| Recorte | `cropSquare`/`cropVertical` conservam x/y/zoom. `rotation` em graus, `flipX` e `flipY` opcionais. Ausentes equivalem a zero e falso. |
+
+O normalizador valida formatos e descarta entradas de catálogo inválidas ou duplicadas. Nomes de mídia são locais, sem caminhos ou protocolos. Links de redes configuráveis exigem HTTPS. O Studio escreve referências de discos, versos, lombadas e áudios nos fluxos de publicação, prévia, rascunho e pasta local. As opções ausentes do catálogo anterior não são acrescentadas aos scripts ao serializar. O hash da publicação anterior continua utilizável para procurar rascunhos antigos.

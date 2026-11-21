@@ -1,0 +1,678 @@
+[
+  {
+    "name": "chromium",
+    "width": 360,
+    "height": 640,
+    "errors": [],
+    "failed": [],
+    "throttle": "6× + Slow 4G",
+    "initial": {
+      "lcp": 5240,
+      "cls": 0,
+      "longTasks": 532,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 5240,
+      "cls": 0.06478408940633137,
+      "longTasks": 4215,
+      "maxEvent": 568
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 375,
+    "height": 667,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 372,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 372,
+      "cls": 0.02016424321572347,
+      "longTasks": 28,
+      "maxEvent": 72
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 480,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "axe": [],
+    "axeViewer": [],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 480,
+      "cls": 0.04332828670388693,
+      "longTasks": 499,
+      "maxEvent": 136
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 412,
+    "height": 915,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 680,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 680,
+      "cls": 0.03292622616519205,
+      "longTasks": 207,
+      "maxEvent": 168
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 1072,
+      "cls": 0,
+      "longTasks": 14,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1072,
+      "cls": 0.03817539120514103,
+      "longTasks": 286,
+      "maxEvent": 240
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 720,
+    "height": 1600,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 664,
+      "cls": 0.008128200912475585,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 664,
+      "cls": 0.02428351948208279,
+      "longTasks": 290,
+      "maxEvent": 208
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 768,
+    "height": 1024,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 932,
+      "cls": 0.00357678160071373,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 932,
+      "cls": 0.01975876574094097,
+      "longTasks": 281,
+      "maxEvent": 200
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 812,
+      "cls": 0.010415344724961254,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 812,
+      "cls": 0.03964395845508875,
+      "longTasks": 221,
+      "maxEvent": 176
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1024,
+    "height": 768,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 740,
+      "cls": 0.0043840823927894235,
+      "longTasks": 1,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 740,
+      "cls": 0.03646154573652893,
+      "longTasks": 105,
+      "maxEvent": 168
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "throttle": "3×",
+    "initial": {
+      "lcp": 1360,
+      "cls": 0,
+      "longTasks": 875,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "axe": [],
+    "axeViewer": [],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1360,
+      "cls": 0.019560333887736002,
+      "longTasks": 3239,
+      "maxEvent": 272
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1440,
+    "height": 900,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 364,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 364,
+      "cls": 0.014712886874142662,
+      "longTasks": 76,
+      "maxEvent": 176
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 1920,
+    "height": 1080,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 532,
+      "cls": 0,
+      "longTasks": 35,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 532,
+      "cls": 0.006826492874710648,
+      "longTasks": 72,
+      "maxEvent": 136
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 2560,
+    "height": 1440,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 388,
+      "cls": 0,
+      "longTasks": 4,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 388,
+      "cls": 0.0028799266815185544,
+      "longTasks": 251,
+      "maxEvent": 216
+    }
+  },
+  {
+    "name": "chromium",
+    "width": 3440,
+    "height": 1440,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 540,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 540,
+      "cls": 0.0015949404661303405,
+      "longTasks": 179,
+      "maxEvent": 144
+    }
+  },
+  {
+    "name": "firefox",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 1230,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 15,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778,
+        "png": 2266
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 1230,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 224
+    }
+  },
+  {
+    "name": "firefox",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 745,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 15,
+      "bytes": {
+        "/": 20360,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 1778,
+        "png": 2266
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 745,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 104
+    }
+  },
+  {
+    "name": "webkit",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 741,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "webmanifest": 664,
+        "woff2": 22588,
+        "css": 61789,
+        "js": 124261,
+        "svg": 889
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 741,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 24
+    }
+  },
+  {
+    "name": "webkit",
+    "width": 1280,
+    "height": 720,
+    "errors": [],
+    "failed": [],
+    "initial": {
+      "lcp": 333,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 0,
+      "requests": 14,
+      "bytes": {
+        "/": 20360,
+        "webmanifest": 664,
+        "js": 124261,
+        "woff2": 22588,
+        "css": 61789,
+        "svg": 889
+      }
+    },
+    "overflow": 0,
+    "sizes": [
+      44,
+      44,
+      44
+    ],
+    "back": {
+      "hash": "#/banners",
+      "dialog": 0
+    },
+    "interaction": {
+      "lcp": 333,
+      "cls": 0,
+      "longTasks": 0,
+      "maxEvent": 16
+    }
+  }
+]

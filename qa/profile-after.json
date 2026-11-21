@@ -1,0 +1,32 @@
+[
+  {
+    "rate": 1,
+    "views": 100,
+    "bootAudioMs": 123,
+    "fps": 25.400166263150208,
+    "averageTransitionMs": 319.114999999702,
+    "heapBefore": 2007224,
+    "heapAfter": 2504304,
+    "errors": []
+  },
+  {
+    "rate": 3,
+    "views": 12,
+    "bootAudioMs": 22,
+    "fps": 33.0768563561548,
+    "averageTransitionMs": 330.516666666915,
+    "heapBefore": 2007364,
+    "heapAfter": 2217716,
+    "errors": []
+  },
+  {
+    "rate": 6,
+    "views": 12,
+    "bootAudioMs": 38,
+    "fps": 26.578305833697545,
+    "averageTransitionMs": 470.6333333315949,
+    "heapBefore": 2035668,
+    "heapAfter": 2245268,
+    "errors": []
+  }
+]
